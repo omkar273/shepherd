@@ -63,3 +63,35 @@ Take the first rung that holds, and name it in one line:
 4. A dependency the repo already has.
 5. Minimal new code.
 
+## Shared cut list
+
+Code that has not earned its place, when writing and when reviewing:
+
+- An interface or abstract type with one implementation. Exception: the repo's
+  convention requires it (a `createX` factory returning interface `X`,
+  producer-side service interfaces) or a test fake or stub implements it. Grep
+  for implementations before flagging.
+- A factory with one product; a unit-of-work, manager, registry, or options
+  layer with one consumer.
+- A function that only forwards its arguments to one call.
+- A one-expression helper with one or two callers that names no domain concept.
+- Error factories, throw-only and catch-only helpers.
+- A parameter, option, or flag that every caller leaves at its default.
+- A generic type parameter used with one type.
+- A new file or layer when an existing one already owns the job.
+- Near-duplicates merged behind boolean flags (keep the copies); a function
+  split only to make it shorter.
+- An alias that only renames: a re-export under a new name, a type alias or
+  token that maps one name to another.
+- A stub or placeholder: an option or branch that only logs "would do X", a
+  hardcoded fake value. Leave it out until X exists.
+- A comment the code could carry instead, through a better name, a named
+  constant, or a type. A comment earns its place only for a non-obvious why,
+  an outside constraint (a library bug, a spec, an audit item), a deliberate
+  deviation, or a TODO with an owner, in at most 2 lines. Commented-out code
+  is deleted; git remembers it.
+- Logging on the happy path.
+- Edits to code the task didn't ask about: refactors, renames, reformatting,
+  behavior changes to existing paths, and bulk-stripping old comments or lint
+  backlog in files you only touch.
+
