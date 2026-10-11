@@ -1,8 +1,8 @@
 # <add | remove | move | reject>: <skill> (<pack>)
 
 - **Date:** <YYYY-MM-DD>
-- **Source:** <repo> at `<path>`, ref `<40-character sha>`
-- **Content hash:** `<sha256>`
+- **Source:** <repo> at `<path>`
+- **Reviewed at commit:** `<sha printed by catalog.py fetch>`
 - **License:** <SPDX id>
 
 ## Scores
