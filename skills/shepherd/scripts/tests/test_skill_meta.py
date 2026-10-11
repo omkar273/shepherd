@@ -126,3 +126,16 @@ class ParseFrontmatterTests(unittest.TestCase):
         self.assertEqual(result["trigger"], "/graphify")
 
 
+class ReadSkillFrontmatterTests(unittest.TestCase):
+    def test_reads_frontmatter_from_skill_md(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            skill_dir = Path(tmp) / "example-skill"
+            skill_dir.mkdir()
+            (skill_dir / "SKILL.md").write_text(
+                "---\nname: example-skill\ndescription: >\n  Does a thing\n  "
+                "across two lines.\n---\n\n# Example\n"
+            )
+            result = skill_meta.read_skill_frontmatter(skill_dir)
+            self.assertEqual(result["name"], "example-skill")
+            self.assertEqual(result["description"], "Does a thing across two lines.")
+
