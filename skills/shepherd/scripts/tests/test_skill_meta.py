@@ -87,3 +87,11 @@ class OriginRoundTripTests(unittest.TestCase):
             self.assertEqual(result["source_ref"], "")
 
 
+class ParseFrontmatterTests(unittest.TestCase):
+    def test_parses_plain_value(self):
+        text = "name: writing-plans\ndescription: Use when you have a spec.\n"
+        self.assertEqual(
+            skill_meta.parse_frontmatter(text),
+            {"name": "writing-plans", "description": "Use when you have a spec."},
+        )
+
