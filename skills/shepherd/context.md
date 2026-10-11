@@ -37,7 +37,21 @@ step. Never compact in the middle of a debugging thread.
 - Long test runs and log digging go to a subagent too; only the conclusion
   comes back.
 
+## Hooks
+
+Setup can install these; each fails open and never blocks a session.
+
+- **Context warning:** past 200k, and again past 400k, one line suggests a
+  fresh session or `/compact` at the next task boundary. Act on it.
+- **Trimmed output:** Bash output over 200 lines comes back as its first and
+  last 60 lines plus `[N lines trimmed; full log: <path>]`. Grep the log
+  rather than re-running the command. Add `# full` to the command only when
+  the whole output must be read.
+- **No dumps:** a plain `cat` or `sed -n '1,$p'` of a text file over 300 lines
+  is denied. Use Read with an offset and limit, or `grep -n` then
+  `sed -n 'a,bp'`.
+
 ## Check the meter
 
 `/context` shows what fills the window. If skills or MCP tools unused in this
-repo take a large share, tell the user which ones.
+repo take a large share, offer "prune skills for this repo" (`skills.md`).

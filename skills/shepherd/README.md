@@ -39,7 +39,7 @@ servers, and makes no network calls of its own. While it works, the agent:
 
 The `scripts/` folder holds the setup and update tools for the full setup from
 the repository. They link skills into `~/.claude/skills`, add a block to
-`~/.claude/CLAUDE.md`, can add a session-start reminder to
+`~/.claude/CLAUDE.md`, can add a session-start reminder and context hooks to
 `~/.claude/settings.json`, and fetch optional skill packs from GitHub, each
 only after you say yes. When shepherd is installed as a plugin, it doesn't run
 them.

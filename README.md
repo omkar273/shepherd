@@ -136,8 +136,8 @@ Open Claude Code in that folder and say **"set up my skills"**. Setup:
 - writes one marked block into `~/.claude/CLAUDE.md`
 - offers to install the [superpowers](https://github.com/obra/superpowers)
   plugin if it is missing
-- offers the 7-day update reminder, showing the `~/.claude/settings.json`
-  diff first
+- offers the 7-day update reminder and the [context hooks](#context-hygiene),
+  showing each `~/.claude/settings.json` diff first
 
 Running setup again is safe: it skips what's already in place.
 
@@ -199,6 +199,21 @@ Packs track each skill's upstream. Every skill in a pack has a decision record
 in [`catalog/decisions/`](catalog/decisions/) that scores it against a rubric
 and names the commit reviewed. The procedure is in
 [`curate.md`](skills/shepherd/curate.md).
+
+### Context hygiene
+
+Long sessions cost more and answer worse. Setup offers three hooks, each shown
+as a diff and installed only on your yes; each one does nothing if it fails:
+
+- a one-line warning when a session passes 200k tokens, and again at 400k;
+- Bash output over 200 lines trimmed to its first and last 60, with the full
+  output saved under `~/.claude/shepherd/logs/` (add `# full` to a command to
+  skip it);
+- `cat` of a text file over 300 lines denied, in favor of a ranged read.
+
+It also offers `autoCompactWindow: 300000` and a status line with context %.
+Say **"prune skills for this repo"** to see which skills and plugins a repo
+never used in 30 days and turn them down in its `.claude/settings.local.json`.
 
 ## Update
 
