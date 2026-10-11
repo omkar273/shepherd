@@ -37,3 +37,24 @@ def git_short_head(path):
     return result.stdout.strip()
 
 
+def resolve_source_dir(origin, workdir, clone=clone_shallow):
+    """Returns (source_dir, git_root). git_root is set only when the
+    source was freshly cloned (its HEAD sha is meaningful as a new
+    source_ref); it's None for local filesystem sources."""
+    source_repo = origin.get("source_repo", "local")
+    if source_repo == "local" or not source_repo:
+        return None, None
+    if is_remote(source_repo):
+        dest = Path(workdir) / "clone"
+        clone(source_repo, dest)
+        base, git_root = dest, dest
+    else:
+        base = Path(source_repo).expanduser()
+        if not base.exists():
+            raise FileNotFoundError(f"source_repo path does not exist: {base}")
+        git_root = None
+    source_path = origin.get("source_path", "")
+    src = base / source_path if source_path else base
+    return src, git_root
+
+
