@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Add or remove a command hook in ~/.claude/settings.json.
+"""Add or remove a command hook, or merge keys, in ~/.claude/settings.json.
 
-Prints a unified diff of the change and writes only with --write. Other keys
-are kept. Exits 1, leaving the file untouched, when it isn't valid JSON."""
+--file targets another settings file, such as a repo's
+.claude/settings.local.json. Prints a unified diff of the change and writes
+only with --write. Other keys are kept. Exits 1, leaving the file untouched,
+when it isn't valid JSON."""
 import argparse
 import difflib
 import json
@@ -38,27 +40,45 @@ def remove_hook(data, event, command, matcher):
     return data
 
 
+def merge(data, patch):
+    for key, value in patch.items():
+        if isinstance(value, dict) and isinstance(data.get(key), dict):
+            merge(data[key], value)
+        else:
+            data[key] = value
+    return data
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="action", required=True)
-    for name in ("add-hook", "remove-hook"):
+    for name in ("add-hook", "remove-hook", "merge"):
         p = sub.add_parser(name)
-        p.add_argument("--event", required=True)
-        p.add_argument("--command", required=True)
-        p.add_argument("--matcher", default=None)
+        if name == "merge":
+            p.add_argument("--json", required=True, type=json.loads, help="object to merge in")
+        else:
+            p.add_argument("--event", required=True)
+            p.add_argument("--command", required=True)
+            p.add_argument("--matcher", default=None)
+        p.add_argument("--file", default=None)
         p.add_argument("--write", action="store_true")
         p.add_argument("--home", default=str(Path.home()))
     args = parser.parse_args()
 
-    path = Path(args.home).expanduser() / ".claude" / "settings.json"
+    path = (Path(args.file).expanduser() if args.file
+            else Path(args.home).expanduser() / ".claude" / "settings.json")
     before = path.read_text() if path.exists() else ""
     try:
         data = json.loads(before) if before.strip() else {}
     except json.JSONDecodeError as error:
         sys.exit(f"settings.py: {path} is not valid JSON ({error}); left untouched")
 
-    change = add_hook if args.action == "add-hook" else remove_hook
-    after = render(change(data, args.event, args.command, args.matcher))
+    if args.action == "merge":
+        data = merge(data, args.json)
+    else:
+        change = add_hook if args.action == "add-hook" else remove_hook
+        data = change(data, args.event, args.command, args.matcher)
+    after = render(data)
     if after == before:
         return
     sys.stdout.writelines(difflib.unified_diff(
