@@ -61,3 +61,12 @@ def update_readme(readme_path, skills_dir):
     return new_text
 
 
+def main():
+    argparse.ArgumentParser(description=__doc__).parse_args()
+    root = Path(__file__).resolve().parents[2]
+    update_readme(root.parent / "README.md", root)
+    print("README.md catalog regenerated")
+
+
+if __name__ == "__main__":
+    main()
