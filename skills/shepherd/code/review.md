@@ -68,3 +68,23 @@ Number findings across all groups. Pure deletions get a GitHub
 its own review format, map MUST and SHOULD to its "act on" level and ASK to its
 "consider" level.
 
+## Posting, only after the user approves
+
+- The user picks which findings go out, and may edit them.
+- Post one review with event `COMMENT` and only the approved inline comments.
+  Write the payload to a temp file outside the repo, then run
+  `gh api repos/{owner}/{repo}/pulls/<n>/reviews --method POST --input <file>`:
+
+```json
+{
+  "commit_id": "<head sha>",
+  "event": "COMMENT",
+  "body": "<summary>",
+  "comments": [{ "path": "src/a.ts", "line": 42, "side": "RIGHT", "body": "<finding>" }]
+}
+```
+
+- Never use `APPROVE` or `REQUEST_CHANGES` unless the user says to. Never push,
+  commit, or resolve threads.
+- Large PRs (over about 40 files or 1,500 changed lines): review stack by
+  stack, and list skipped areas under `Not checked:`.
