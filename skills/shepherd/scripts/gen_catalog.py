@@ -48,3 +48,16 @@ def render_catalog(rows):
     return "\n".join(parts)
 
 
+def update_readme(readme_path, skills_dir):
+    readme_path = Path(readme_path)
+    text = readme_path.read_text()
+    if START_MARKER not in text or END_MARKER not in text:
+        raise ValueError(f"{readme_path} is missing {START_MARKER}/{END_MARKER} markers")
+    before, rest = text.split(START_MARKER, 1)
+    _, after = rest.split(END_MARKER, 1)
+    catalog = render_catalog(collect_skills(skills_dir))
+    new_text = f"{before}{START_MARKER}\n\n{catalog}\n\n{END_MARKER}{after}"
+    readme_path.write_text(new_text)
+    return new_text
+
+
