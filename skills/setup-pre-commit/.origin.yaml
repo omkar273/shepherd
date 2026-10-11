@@ -1,0 +1,5 @@
+origin: vendored
+source_repo: https://github.com/mattpocock/skills
+source_path: skills/misc/setup-pre-commit
+source_ref: 49dd158
+snapshotted_at: 2026-10-12
