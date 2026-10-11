@@ -101,3 +101,12 @@ def sync_all(skills_dir, new_ref=None, clone=clone_shallow, get_head=git_short_h
             sync_one(skill_dir, new_ref=new_ref, clone=cached_clone, get_head=get_head)
 
 
+def build_parser():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("name", nargs="?", help="skill directory name to sync")
+    parser.add_argument("--all", action="store_true", help="sync every non-local skill")
+    parser.add_argument("--ref", default=None, help="explicit source_ref to record")
+    parser.add_argument("--skills-dir", default=None)
+    return parser
+
+
