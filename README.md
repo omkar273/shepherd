@@ -4,8 +4,8 @@
 
 `shepherd` is an [Agent Skill](https://docs.claude.com/en/docs/claude-code/skills)
 that makes your coding agent write the smallest change that works, and stops it
-from deleting the checks that matter. It runs in Claude Code and in any agent
-that reads `~/.agents/skills`.
+from deleting the checks that matter. It's built for Claude Code, and the
+`skills` CLI installs it for other coding agents too.
 
 ## Sound familiar?
 
@@ -68,8 +68,9 @@ claude plugin marketplace add omkar273/shepherd
 claude plugin install shepherd@shepherd
 ```
 
-In Codex, Cursor, Gemini CLI, opencode and other agents, use the
-[`skills`](https://github.com/vercel-labs/skills) CLI:
+For other agents, use the [`skills`](https://github.com/vercel-labs/skills)
+CLI. It detects which of its supported agents you have installed, such as
+Codex, Cursor, Gemini CLI, and OpenCode, and asks you to pick if it finds none:
 
 ```bash
 npx skills add https://github.com/omkar273/shepherd --skill shepherd -g
@@ -90,17 +91,20 @@ above, uninstall it first; the full setup includes `shepherd`.
 git clone https://github.com/omkar273/shepherd ~/src-code/shepherd
 ```
 
+You need Claude Code, git, Python 3, and jq; setup stops if one is missing.
 Open Claude Code in that folder and say **"set up my skills"**. Setup:
 
+- shows what it will link and back up, and continues on your yes
 - links each skill into `~/.claude/skills` and `~/.agents/skills`
 - moves anything it would replace to `~/.skills-backup/<date>/`, and never
-  deletes
+  deletes your files
 - writes one marked block into `~/.claude/CLAUDE.md`
-- shows a diff and asks before it touches `~/.claude/settings.json`
-- installs the [superpowers](https://github.com/obra/superpowers) plugin if it
-  is missing
+- offers to install the [superpowers](https://github.com/obra/superpowers)
+  plugin if it is missing
+- offers the 7-day update reminder, showing the `~/.claude/settings.json`
+  diff first
 
-Running setup again is safe: a second run changes nothing.
+Running setup again is safe: it skips what's already in place.
 
 ## How it works
 
