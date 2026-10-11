@@ -49,3 +49,18 @@ class ResolveSourceDirTests(unittest.TestCase):
                 )
 
 
+class SyncOneTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+
+    def test_local_source_is_skipped(self):
+        skill_dir = Path(self.tmp) / "skills" / "example"
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text("---\nname: example\n---\n")
+        skill_meta.write_origin(skill_dir, {
+            "origin": "vendored", "source_repo": "local", "snapshotted_at": "2026-01-01",
+        })
+        changed = sync_skill.sync_one(skill_dir)
+        self.assertFalse(changed)
+
