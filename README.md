@@ -82,9 +82,9 @@ off.
 
 ### The full setup
 
-`shepherd`, the skills it routes to, superpowers, and the "update my skills"
-and "skills status" commands. If you installed the plugin above, uninstall it
-first; the full setup includes `shepherd`.
+`shepherd`, Matt Pocock's engineering skills, superpowers, packs, and the
+"update my skills" and "skills status" commands. If you installed the plugin
+above, uninstall it first; the full setup includes `shepherd`.
 
 ```bash
 git clone https://github.com/omkar273/shepherd ~/src-code/shepherd
@@ -136,8 +136,8 @@ The rules, briefly:
 ## What setup also gives you
 
 `shepherd` hands planning, debugging, and the final done-check to the
-[superpowers](https://github.com/obra/superpowers) skills, and setup links the
-Matt Pocock skills it routes to, such as `grilling`, `prototype`, `research`,
+[superpowers](https://github.com/obra/superpowers) skills. Setup also links
+Matt Pocock's engineering skills, such as `grilling`, `prototype`, `research`,
 and `pr`. His slash-command skills, such as `/grill-me` and `/to-spec`, come
 as [packs](#packs-experimental).
 
@@ -177,7 +177,7 @@ Skills marked `mine` are authored here. Vendored skills record their source in
 ## Keeping it current
 
 - **"update my skills"** pulls this repo, re-syncs vendored skills from their
-  sources, shows you the diff, and commits on your yes.
+  sources, shows you the diff, and commits and pushes on your yes.
 - **"skills status"** reports missing, broken, or shadowed links, vendored
   skills behind their source, installed and available packs, and days since
   the last update.
@@ -199,9 +199,9 @@ and never installs without your yes. You can also say **"what packs are
 there"**, **"install the planning pack"**, or **"remove a pack"**. Packs come
 with the full setup; a shepherd-only install doesn't offer them.
 
-Packs track each skill's upstream. Every skill that enters or leaves a pack is
-scored against a rubric, trialled against a run without it, and committed with
-a decision record that names the commit reviewed. The procedure is in
+Packs track each skill's upstream. Every skill in a pack has a decision record
+in [`catalog/decisions/`](catalog/decisions/) that scores it against a rubric
+and names the commit reviewed. The procedure is in
 [`curate.md`](skills/shepherd/curate.md).
 
 ## Add value
@@ -225,15 +225,17 @@ described in [SECURITY.md](SECURITY.md).
 Just shepherd: `claude plugin uninstall shepherd@shepherd`, or
 `npx skills remove shepherd -g`.
 
-The full setup:
+The full setup: remove the links into this clone and into the pack cache, then
+the session-start reminder, if you turned it on.
 
 ```bash
-find ~/.claude/skills ~/.agents/skills -maxdepth 1 -lname "$HOME/src-code/shepherd/*" -delete
+find ~/.claude/skills ~/.agents/skills -maxdepth 1 \( -lname "$HOME/src-code/shepherd/*" -o -lname "$HOME/.shepherd/catalog/*" \) -delete
+python3 ~/src-code/shepherd/skills/shepherd/scripts/settings.py remove-hook --event SessionStart --command 'python3 "$HOME/.claude/skills/shepherd/scripts/nudge.py"' --write
 ```
 
-That removes only the links into this clone. Then delete the block between
-`<!-- skills:begin -->` and `<!-- skills:end -->` in `~/.claude/CLAUDE.md`.
-Anything setup replaced is in `~/.skills-backup/`.
+Then delete the block between `<!-- skills:begin -->` and
+`<!-- skills:end -->` in `~/.claude/CLAUDE.md`. The pack cache is in
+`~/.shepherd/`, and anything setup replaced is in `~/.skills-backup/`.
 
 ## Credits and license
 
