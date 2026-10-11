@@ -28,3 +28,15 @@ class Base(unittest.TestCase):
         self.state = self.home / ".claude" / "shepherd.json"
 
 
+class SettingsTests(Base):
+    def add(self, *extra):
+        return run("settings.py", self.home, "add-hook", "--event", "SessionStart",
+                   "--command", CMD, *extra, check=False)
+
+    def hooks(self):
+        return json.loads(self.settings.read_text())["hooks"]["SessionStart"]
+
+    def test_add_hook_to_empty(self):
+        self.assertEqual(self.add("--write").returncode, 0)
+        self.assertEqual(self.hooks(), [{"hooks": [{"type": "command", "command": CMD}]}])
+
