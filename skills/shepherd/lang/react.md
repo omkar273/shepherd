@@ -25,3 +25,8 @@
 URL and search params, form input, API responses (validate in the data layer,
 not in every component), `localStorage`, `postMessage`.
 
+## Wiring
+
+Route registration, providers mounted above every consumer, query keys that
+match their invalidations, exports through the repo's index or barrel file,
+and the repo's design-system component over a new or native one.
