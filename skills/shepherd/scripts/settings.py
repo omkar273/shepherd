@@ -38,3 +38,36 @@ def remove_hook(data, event, command, matcher):
     return data
 
 
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    sub = parser.add_subparsers(dest="action", required=True)
+    for name in ("add-hook", "remove-hook"):
+        p = sub.add_parser(name)
+        p.add_argument("--event", required=True)
+        p.add_argument("--command", required=True)
+        p.add_argument("--matcher", default=None)
+        p.add_argument("--write", action="store_true")
+        p.add_argument("--home", default=str(Path.home()))
+    args = parser.parse_args()
+
+    path = Path(args.home).expanduser() / ".claude" / "settings.json"
+    before = path.read_text() if path.exists() else ""
+    try:
+        data = json.loads(before) if before.strip() else {}
+    except json.JSONDecodeError as error:
+        sys.exit(f"settings.py: {path} is not valid JSON ({error}); left untouched")
+
+    change = add_hook if args.action == "add-hook" else remove_hook
+    after = render(change(data, args.event, args.command, args.matcher))
+    if after == before:
+        return
+    sys.stdout.writelines(difflib.unified_diff(
+        before.splitlines(keepends=True), after.splitlines(keepends=True),
+        str(path), str(path)))
+    if args.write:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(after)
+
+
+if __name__ == "__main__":
+    main()
