@@ -71,3 +71,13 @@ class ShepherdTests(unittest.TestCase):
     def test_router_under_budget(self):
         self.assertLessEqual(len((SHEPHERD / "SKILL.md").read_text()) / 4, 5000)
 
+    def test_routing_paths_exist(self):
+        text = (SHEPHERD / "SKILL.md").read_text()
+        paths = set(re.findall(r"`([a-z0-9_/-]+\.md)`", text))
+        self.assertTrue(paths)
+        missing = [p for p in sorted(paths) if not (SHEPHERD / p).exists()]
+        self.assertEqual(missing, [])
+
+
+if __name__ == "__main__":
+    unittest.main()
