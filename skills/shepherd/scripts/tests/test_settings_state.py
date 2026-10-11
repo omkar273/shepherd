@@ -53,3 +53,8 @@ class SettingsTests(Base):
         self.assertEqual(data["model"], "opus")
         self.assertIn("Stop", data["hooks"])
 
+    def test_invalid_json_exit1_untouched(self):
+        self.settings.write_text("{not json")
+        self.assertEqual(self.add("--write").returncode, 1)
+        self.assertEqual(self.settings.read_text(), "{not json")
+
