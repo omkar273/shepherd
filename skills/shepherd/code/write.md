@@ -40,3 +40,23 @@ list it under `Follow-ups:` in the report.
 
 Add or remove checks per `code/defensive.md`.
 
+## 3. Self-check before saying done
+
+1. Run `git diff` and read it as one design. For each hunk, name the contract
+   item (1 to 4) it serves. Revert every hunk that serves none.
+2. Walk the shared cut list over every added function, type, and file. Inline
+   or delete whatever fails it.
+3. Tick off the reach list. Grep every new exported symbol to prove it is
+   called or registered.
+4. Run the repo's own checks: lint, typecheck or build, focused tests, using
+   the scripts the repo defines. Never append `|| true`.
+5. Report in this shape:
+
+```text
+Rung: <ladder rung, and why, in one line>
+Changed: <file - what, one line each>
+Lean: -<N> lines cut in self-check (or: nothing cut)
+Fixed alongside: <adjacent bug - fix, one line each, or none>
+Follow-ups: <deliberately left out, or none>
+Not checked: <what could not be verified, or none>
+```
