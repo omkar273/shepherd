@@ -19,3 +19,18 @@ For a teammate's pull request or branch.
 - The PR's intent is its title, body, and linked issue. Judge scope against
   that.
 
+## Passes, in order
+
+1. Wiring. For each changed signature or behavior, grep every caller at the
+   head. Check every reach-list item the change implies: registrations
+   (routes, DI, workers, router tables, exports), error-to-status mappings
+   for new error values, config and env, migrations, generated code, and any
+   construction site the repo's docs list.
+2. Defensive checks, by the tiers in `code/defensive.md`. Never-cut items stay
+   out of the findings.
+3. The shared cut list in `SKILL.md`. Where the PR deletes code as unused,
+   run the "Proving code is unused" checks; deleting something load-bearing
+   is a MUST.
+4. Scope: hunks unrelated to the PR's intent, including old comments or lint
+   backlog stripped from files the PR only touches.
+
