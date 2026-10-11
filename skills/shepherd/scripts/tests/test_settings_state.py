@@ -83,3 +83,7 @@ class NudgeTests(Base):
         self.assertEqual(self.nudge().stdout.strip(),
                          'Skills last updated 9 days ago. Say "update my skills".')
 
+    def test_fresh_silent(self):
+        self.stamp(2)
+        self.assertEqual(self.nudge().stdout, "")
+
