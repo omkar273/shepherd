@@ -119,3 +119,10 @@ class ParseFrontmatterTests(unittest.TestCase):
         result = skill_meta.parse_frontmatter(text)
         self.assertEqual(result["description"], "Line one.\nLine two.")
 
+    def test_captures_extra_fields(self):
+        text = "name: graphify\ndescription: Turns things into graphs.\ntrigger: /graphify\n"
+        result = skill_meta.parse_frontmatter(text)
+        self.assertEqual(result["name"], "graphify")
+        self.assertEqual(result["trigger"], "/graphify")
+
+
