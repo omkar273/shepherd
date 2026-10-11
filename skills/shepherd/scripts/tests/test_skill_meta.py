@@ -139,3 +139,14 @@ class ReadSkillFrontmatterTests(unittest.TestCase):
             self.assertEqual(result["name"], "example-skill")
             self.assertEqual(result["description"], "Does a thing across two lines.")
 
+    def test_raises_when_no_frontmatter(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            skill_dir = Path(tmp) / "example-skill"
+            skill_dir.mkdir()
+            (skill_dir / "SKILL.md").write_text("# Example\nNo frontmatter here.\n")
+            with self.assertRaises(ValueError):
+                skill_meta.read_skill_frontmatter(skill_dir)
+
+
+if __name__ == "__main__":
+    unittest.main()
