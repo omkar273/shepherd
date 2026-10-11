@@ -35,3 +35,19 @@ class NewSkillTests(unittest.TestCase):
         with self.assertRaises(FileExistsError):
             new_skill.new_skill("dup-skill", "mine", skills_dir=self.skills_dir)
 
+    def test_seed_from_copies_real_content(self):
+        seed_dir = Path(self.tmp) / "seed"
+        seed_dir.mkdir()
+        (seed_dir / "SKILL.md").write_text(
+            "---\nname: seed\ndescription: Real content.\n---\n"
+        )
+        (seed_dir / "references").mkdir()
+        (seed_dir / "references" / "notes.md").write_text("extra asset")
+
+        skill_dir = new_skill.new_skill(
+            "seeded-skill", "vendored", source_repo="local",
+            seed_from=str(seed_dir), skills_dir=self.skills_dir,
+        )
+        self.assertIn("Real content.", (skill_dir / "SKILL.md").read_text())
+        self.assertTrue((skill_dir / "references" / "notes.md").exists())
+
