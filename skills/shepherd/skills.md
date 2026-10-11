@@ -39,3 +39,11 @@ Run scripts with `python3 <shepherd>/scripts/<script>`. Every script takes
    On no, run `git -C <repo> checkout -- skills`.
 4. Run `link_skills.py`, `gen_catalog.py`, then `state.py stamp --repo <repo>`.
 
+## Add: "add skill X"
+
+- Yours: `new_skill.py <name> --origin mine`, then write its `SKILL.md`.
+- Vendored: `new_skill.py <name> --origin vendored --source-repo <url>
+  --source-path <path> --source-ref <sha> --seed-from <local checkout of path>`.
+- Then run `link_skills.py` and `gen_catalog.py`, run the tests from
+  `<repo>/AGENTS.md`, and commit.
+
