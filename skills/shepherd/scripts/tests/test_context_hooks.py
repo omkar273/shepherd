@@ -156,9 +156,66 @@ class TrimTests(Base):
         self.assertTrue(recent.exists())
 
 
+class GuardTests(Base):
+    DENY = {"hookSpecificOutput": {
+        "hookEventName": "PreToolUse", "permissionDecision": "deny",
+        "permissionDecisionReason": "Use Read with an offset and limit, or `grep -n` then `sed -n 'a,bp'`."}}
+
+    def setUp(self):
+        super().setUp()
+        self.cwd = self.home / "repo"
+        self.cwd.mkdir()
+        self.data = fixture("pre_tool_use_bash")
+        self.data["cwd"] = str(self.cwd)
+        (self.cwd / "big.py").write_text("x = 1\n" * 400)
+        (self.cwd / "small.py").write_text("x = 1\n" * 300)
+
+    def guard(self, command):
+        self.data["tool_input"]["command"] = command
+        result = self.hook("guard", self.data)
+        self.assertEqual(result.returncode, 0)
+        return json.loads(result.stdout) if result.stdout else None
+
+    def test_guard_denies_big_cat(self):
+        self.assertEqual(self.guard(f"cat {self.cwd / 'big.py'}"), self.DENY)
+        self.assertEqual(self.guard(f"cat -n {self.cwd / 'big.py'}"), self.DENY)
+
+    def test_guard_denies_sed_full_view(self):
+        self.assertEqual(self.guard("sed -n '1,$p' big.py"), self.DENY)
+        self.assertEqual(self.guard("sed -n p big.py"), self.DENY)
+
+    def test_guard_allows_small_file(self):
+        self.assertIsNone(self.guard("cat small.py"))
+
+    def test_guard_allows_pipe(self):
+        self.assertIsNone(self.guard("cat big.py | head -20"))
+        self.assertIsNone(self.guard("cat big.py|head -20"))
+        self.assertIsNone(self.guard("cat big.py > copy.py"))
+        self.assertIsNone(self.guard("cat big.py && ls"))
+
+    def test_guard_allows_two_files(self):
+        self.assertIsNone(self.guard("cat big.py small.py"))
+
+    def test_guard_allows_ranged_sed(self):
+        self.assertIsNone(self.guard("sed -n '1,40p' big.py"))
+
+    def test_guard_allows_binary(self):
+        (self.cwd / "blob.bin").write_bytes(b"\0" + b"x\n" * 400)
+        self.assertIsNone(self.guard("cat blob.bin"))
+
+    def test_guard_allows_missing_file(self):
+        self.assertIsNone(self.guard("cat nope.py"))
+
+    def test_guard_relative_to_cwd(self):
+        self.assertEqual(self.guard("cat big.py"), self.DENY)
+
+    def test_guard_trailing_comment_still_denied(self):
+        self.assertEqual(self.guard("cat big.py  # look"), self.DENY)
+
+
 class FailOpenTests(Base):
     def test_malformed_stdin_exit0(self):
-        for name in ("warn", "trim"):
+        for name in ("warn", "trim", "guard"):
             for stdin in ("", "not json", "[1, 2]", '{"session_id": 5}'):
                 result = self.hook(name, stdin)
                 self.assertEqual((result.returncode, result.stdout, result.stderr), (0, "", ""),
