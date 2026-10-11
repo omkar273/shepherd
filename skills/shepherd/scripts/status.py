@@ -21,3 +21,55 @@ def remote_head(url):
     return out.stdout.split()[0] if out.returncode == 0 and out.stdout else ""
 
 
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--home", default=str(Path.home()))
+    parser.add_argument("--remote", action="store_true")
+    args = parser.parse_args()
+    home = Path(args.home).expanduser()
+    skills = sorted(p for p in SKILLS_DIR.iterdir() if (p / "SKILL.md").exists())
+    report = {"missing": [], "broken": [], "shadowed": [], "behind": [],
+              "uncommitted": [], "days_since_update": None}
+
+    for runtime, rel in RUNTIMES.items():
+        runtime_dir = home / rel
+        for skill in skills:
+            target = runtime_dir / skill.name
+            if not os.path.lexists(target):
+                report["missing"].append(f"{runtime}/{skill.name}")
+            elif Path(os.path.realpath(target)) != skill:
+                report["shadowed"].append(f"{runtime}/{skill.name}")
+        if runtime_dir.is_dir():
+            report["broken"] += [f"{runtime}/{p.name}" for p in sorted(runtime_dir.iterdir())
+                                 if p.is_symlink() and not p.exists()]
+
+    if args.remote:
+        heads = {}
+        for skill in skills:
+            origin = skill_meta.read_origin(skill)
+            url = origin.get("source_repo", "")
+            if sync_skill.is_remote(url):
+                heads.setdefault(url, remote_head(url))
+                ref = origin.get("source_ref", "")
+                if heads[url] and ref and not heads[url].startswith(ref):
+                    report["behind"].append(skill.name)
+
+    porcelain = subprocess.run(["git", "-C", str(SKILLS_DIR.parent), "status", "--porcelain"],
+                               capture_output=True, text=True)
+    report["uncommitted"] = [line[3:] for line in porcelain.stdout.splitlines()]
+
+    try:
+        state = json.loads((home / ".claude" / "shepherd.json").read_text())
+        report["days_since_update"] = (datetime.date.today()
+                                       - datetime.date.fromisoformat(state["last_update"])).days
+    except (OSError, ValueError, KeyError, TypeError):
+        pass
+
+    counts = {k: len(v) for k, v in report.items() if isinstance(v, list)}
+    report["summary"] = ", ".join(f"{k}: {n}" for k, n in counts.items()) + \
+        f", days since update: {report['days_since_update']}"
+    print(json.dumps(report, indent=2))
+
+
+if __name__ == "__main__":
+    main()
