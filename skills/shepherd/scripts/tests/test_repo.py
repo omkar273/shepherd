@@ -65,3 +65,6 @@ class ShepherdTests(unittest.TestCase):
     def test_shepherd_name(self):
         self.assertEqual(skill_meta.read_skill_frontmatter(SHEPHERD).get("name"), "shepherd")
 
+    def test_thirty_skills(self):
+        self.assertEqual(len(skill_dirs()), 30)
+
