@@ -29,3 +29,18 @@ def snapshot(root):
     return sorted((str(p.relative_to(root)), p.is_symlink()) for p in Path(root).rglob("*"))
 
 
+class LinkSkillsTests(unittest.TestCase):
+    def setUp(self):
+        self.home = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.home, ignore_errors=True)
+        self.claude = self.home / ".claude" / "skills"
+        self.agents = self.home / ".agents" / "skills"
+
+    def backups(self):
+        return list((self.home / ".skills-backup").rglob("*"))
+
+    def test_fresh_home_links_all(self):
+        run(self.home)
+        self.assertEqual(len(repo_links(self.claude)), SKILL_COUNT)
+        self.assertEqual(len(repo_links(self.agents)), SKILL_COUNT)
+
