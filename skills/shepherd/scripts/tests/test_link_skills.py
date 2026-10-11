@@ -68,3 +68,10 @@ class LinkSkillsTests(unittest.TestCase):
         self.assertFalse(os.path.lexists(self.claude / "ghost"))
         self.assertIn("claude/ghost", report["pruned"])
 
+    def test_other_skill_untouched(self):
+        (self.agents / "review").mkdir(parents=True)
+        report = run(self.home)
+        self.assertTrue((self.agents / "review").is_dir())
+        self.assertFalse((self.agents / "review").is_symlink())
+        self.assertIn("agents/review", report["untouched"])
+
