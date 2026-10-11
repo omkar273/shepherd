@@ -57,3 +57,9 @@ All four must hold, and you write down the invariant ("`repo` can't be nil:
 | MEDIUM | Swallow-and-default (`?? 0`, `return nil` on error) on data that can really be missing. Log-only catch. Catch around I/O with no comment. Exported function whose callers you can't all see. A cast whose fix ripples outward. | Leave it; report it | ASK, as a question |
 | LOW | Everything on the never-cut list | Keep | Say nothing |
 
+## After removing
+
+Run the repo's checks. A test that newly fails means the check was doing work:
+restore it and report it. Never edit the test to make it pass. If a contract
+now lies (a nullable return type, a doc line), flag it.
+
