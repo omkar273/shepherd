@@ -4,6 +4,8 @@
 warn: UserPromptSubmit. One line when the session passes 200k, then 400k.
 trim: PostToolUse on Bash. Output over 200 lines goes to a log; Claude sees
       its first and last 60 lines. A command containing "# full" is exempt.
+guard: PreToolUse on Bash. Denies a plain `cat FILE` or `sed -n '1,$p' FILE`
+       of a text file over 300 lines.
 
 Each reads the hook's JSON on stdin. On any error it prints nothing and exits
 0, so a broken hook never blocks or changes a session."""
@@ -11,6 +13,7 @@ import argparse
 import itertools
 import json
 import re
+import shlex
 import shutil
 import sys
 import time
@@ -19,6 +22,9 @@ from pathlib import Path
 THRESHOLDS = (200_000, 400_000)
 MAX_LINES = 200
 KEEP_LINES = 60
+MAX_FILE_LINES = 300
+FULL_VIEW_SED = re.compile(r"(1,\$)?p")
+DUMP_REASON = "Use Read with an offset and limit, or `grep -n` then `sed -n 'a,bp'`."
 LOG_DAYS = 7
 TRANSCRIPT_TAIL_BYTES = 4 * 1024 * 1024
 SESSION_ID = re.compile(r"[A-Za-z0-9_-]+")
@@ -105,7 +111,42 @@ def trim(data, home):
                                    "updatedToolOutput": dict(response, **replaced)}}
 
 
-HOOKS = {"warn": warn, "trim": trim}
+def viewed_file(command):
+    """The one file a plain `cat FILE` or `sed -n '1,$p' FILE` prints, else None."""
+    lexer = shlex.shlex(command, posix=True, punctuation_chars=True)
+    lexer.whitespace_split = True
+    words = list(lexer)
+    if any(set(word) <= set(lexer.punctuation_chars) for word in words):
+        return None
+    if words[:1] == ["cat"]:
+        files = [word for word in words[1:] if not word.startswith("-")]
+    elif len(words) == 4 and words[:2] == ["sed", "-n"] and FULL_VIEW_SED.fullmatch(words[2]):
+        files = words[3:]
+    else:
+        return None
+    return files[0] if len(files) == 1 else None
+
+
+def guard(data, home):
+    name = viewed_file(data["tool_input"]["command"])
+    if name is None:
+        return None
+    path = Path(data["cwd"]) / Path(name).expanduser()
+    # Not a FIFO or device: reading one could block the hook.
+    if not path.is_file():
+        return None
+    with open(path, "rb") as f:
+        if b"\0" in f.read(8192):
+            return None
+        f.seek(0)
+        lines = sum(1 for _ in itertools.islice(f, MAX_FILE_LINES + 1))
+    if lines <= MAX_FILE_LINES:
+        return None
+    return {"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny",
+                                   "permissionDecisionReason": DUMP_REASON}}
+
+
+HOOKS = {"warn": warn, "trim": trim, "guard": guard}
 
 
 def main():
