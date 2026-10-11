@@ -17,3 +17,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import skill_meta
 
 
+def is_remote(source_repo):
+    return (
+        source_repo.startswith("http://")
+        or source_repo.startswith("https://")
+        or source_repo.startswith("git@")
+    )
+
+
