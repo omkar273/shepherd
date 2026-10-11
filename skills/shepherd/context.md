@@ -19,3 +19,13 @@ When a sub-task is finished and the session continues, suggest
 `/compact <focus>`, naming the goal, decisions, files changed, and the next
 step. Never compact in the middle of a debugging thread.
 
+## Bound what lands in context
+
+- git: `git commit -q`, `git push -q`, `git diff --stat` before a full diff,
+  `git log --oneline -n 20`. Leave lockfiles out of diffs (`-- . ':!*.lock'`).
+- Builds and tests: pipe through `| tail -n 40`, or write the log to a file
+  and grep it.
+- Search before reading: Grep for the symbol, then Read only the range you
+  need. Read large files with an offset and limit.
+- Re-running a command whose output you already have adds nothing; reuse it.
+
