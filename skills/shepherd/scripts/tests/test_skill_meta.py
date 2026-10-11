@@ -37,3 +37,24 @@ class ParseKvBlockTests(unittest.TestCase):
         )
 
 
+class OriginRoundTripTests(unittest.TestCase):
+    def test_write_then_read_origin(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            skill_dir = Path(tmp) / "example-skill"
+            skill_dir.mkdir()
+            skill_meta.write_origin(skill_dir, {
+                "origin": "vendored",
+                "source_repo": "https://github.com/obra/superpowers",
+                "source_path": "skills/brainstorming",
+                "source_ref": "b557648",
+                "snapshotted_at": "2026-07-11",
+            })
+            result = skill_meta.read_origin(skill_dir)
+            self.assertEqual(result, {
+                "origin": "vendored",
+                "source_repo": "https://github.com/obra/superpowers",
+                "source_path": "skills/brainstorming",
+                "source_ref": "b557648",
+                "snapshotted_at": "2026-07-11",
+            })
+
