@@ -40,3 +40,9 @@ class SettingsTests(Base):
         self.assertEqual(self.add("--write").returncode, 0)
         self.assertEqual(self.hooks(), [{"hooks": [{"type": "command", "command": CMD}]}])
 
+    def test_add_hook_idempotent(self):
+        self.add("--write")
+        result = self.add("--write")
+        self.assertEqual(result.stdout.strip(), "")
+        self.assertEqual(len(self.hooks()), 1)
+
