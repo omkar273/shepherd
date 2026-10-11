@@ -63,3 +63,10 @@ class SettingsTests(Base):
         self.assertIn("SessionStart", result.stdout)
         self.assertFalse(self.settings.exists())
 
+    def test_remove_hook(self):
+        self.add("--write")
+        run("settings.py", self.home, "remove-hook", "--event", "SessionStart",
+            "--command", CMD, "--write")
+        self.assertNotIn("SessionStart", json.loads(self.settings.read_text()).get("hooks", {}))
+
+
