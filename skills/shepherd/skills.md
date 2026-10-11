@@ -5,6 +5,13 @@ or `~/.claude/skills/shepherd` once installed. `<repo>` is the clone's root.
 Run scripts with `python3 <shepherd>/scripts/<script>`. Every script takes
 `--home <dir>`; pass it only when told to (tests, trial runs).
 
+Every flow below needs the clone. First run
+`test -f <shepherd>/../../setup/claude-md.md`. If it fails, shepherd was
+installed on its own (with `npx skills` or as a plugin): run no script from
+this folder. Tell the user these flows come with the full setup in the README,
+and for an update give them `npx skills update shepherd` or
+`claude plugin update shepherd@shepherd`, whichever installed it. Then stop.
+
 ## Setup: "set up my skills"
 
 1. Check `git --version`, `python3 --version`, `jq --version`. If one is
