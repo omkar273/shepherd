@@ -64,3 +64,22 @@ class SyncOneTests(unittest.TestCase):
         changed = sync_skill.sync_one(skill_dir)
         self.assertFalse(changed)
 
+    def test_copies_from_local_path_and_updates_snapshot(self):
+        source_repo = Path(self.tmp) / "upstream"
+        (source_repo / "skills" / "example").mkdir(parents=True)
+        (source_repo / "skills" / "example" / "SKILL.md").write_text("new content")
+
+        skill_dir = Path(self.tmp) / "skills" / "example"
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text("old content")
+        skill_meta.write_origin(skill_dir, {
+            "origin": "mine", "source_repo": str(source_repo),
+            "source_path": "skills/example", "snapshotted_at": "2026-01-01",
+        })
+
+        changed = sync_skill.sync_one(skill_dir)
+        self.assertTrue(changed)
+        self.assertEqual((skill_dir / "SKILL.md").read_text(), "new content")
+        origin = skill_meta.read_origin(skill_dir)
+        self.assertNotEqual(origin["snapshotted_at"], "2026-01-01")
+
