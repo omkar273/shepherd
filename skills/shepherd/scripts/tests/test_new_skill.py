@@ -60,3 +60,19 @@ class NewSkillTests(unittest.TestCase):
                 skills_dir=self.skills_dir,
             )
 
+    def test_records_source_metadata(self):
+        skill_dir = new_skill.new_skill(
+            "tracked-skill", "vendored",
+            source_repo="https://github.com/obra/superpowers",
+            source_path="skills/brainstorming",
+            source_ref="b557648",
+            skills_dir=self.skills_dir,
+        )
+        origin = skill_meta.read_origin(skill_dir)
+        self.assertEqual(origin["source_repo"], "https://github.com/obra/superpowers")
+        self.assertEqual(origin["source_path"], "skills/brainstorming")
+        self.assertEqual(origin["source_ref"], "b557648")
+
+
+if __name__ == "__main__":
+    unittest.main()
