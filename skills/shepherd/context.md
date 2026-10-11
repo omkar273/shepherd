@@ -29,3 +29,11 @@ step. Never compact in the middle of a debugging thread.
   need. Read large files with an offset and limit.
 - Re-running a command whose output you already have adds nothing; reuse it.
 
+## Delegate sweeps
+
+- Reading 10 or more files, or answering 3 or more independent questions:
+  send an Explore subagent and ask for a summary of at most 1,500 words with
+  `file:line` references.
+- Long test runs and log digging go to a subagent too; only the conclusion
+  comes back.
+
