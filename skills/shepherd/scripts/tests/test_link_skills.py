@@ -61,3 +61,10 @@ class LinkSkillsTests(unittest.TestCase):
         self.assertIn("agents/shepherd", report["backed_up"])
         self.assertEqual(Path(os.path.realpath(self.agents / "shepherd")), (SKILLS_DIR / "shepherd").resolve())
 
+    def test_stale_repo_link_pruned(self):
+        self.claude.mkdir(parents=True)
+        (self.claude / "ghost").symlink_to(SKILLS_DIR / "ghost")
+        report = run(self.home)
+        self.assertFalse(os.path.lexists(self.claude / "ghost"))
+        self.assertIn("claude/ghost", report["pruned"])
+
