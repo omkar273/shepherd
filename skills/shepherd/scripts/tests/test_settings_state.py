@@ -97,6 +97,12 @@ class NudgeTests(Base):
 
 
 class StateTests(Base):
+    def test_stamp_keeps_other_keys(self):
+        self.state.write_text(json.dumps({"repo": "/old", "packs": ["design"]}))
+        run("state.py", self.home, "stamp", "--repo", "/new")
+        data = json.loads(self.state.read_text())
+        self.assertEqual((data["repo"], data["packs"]), ("/new", ["design"]))
+
     def test_stamp_writes_today(self):
         run("state.py", self.home, "stamp", "--repo", "/some/repo")
         data = json.loads(self.state.read_text())

@@ -15,7 +15,14 @@ def main():
     args = parser.parse_args()
     path = Path(args.home).expanduser() / ".claude" / "shepherd.json"
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({"repo": args.repo, "last_update": datetime.date.today().isoformat()}) + "\n")
+    try:
+        state = json.loads(path.read_text())
+    except (OSError, ValueError):
+        state = {}
+    if not isinstance(state, dict):
+        state = {}
+    state.update(repo=args.repo, last_update=datetime.date.today().isoformat())
+    path.write_text(json.dumps(state) + "\n")
 
 
 if __name__ == "__main__":
