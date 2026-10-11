@@ -110,3 +110,21 @@ def build_parser():
     return parser
 
 
+def main():
+    args = build_parser().parse_args()
+    if not args.all and not args.name:
+        sys.exit("error: provide a skill name or --all")
+    if args.all and args.name:
+        sys.exit("error: provide either a skill name or --all, not both")
+
+    skills_dir = Path(args.skills_dir) if args.skills_dir \
+        else Path(__file__).resolve().parents[2]
+
+    if args.all:
+        sync_all(skills_dir, new_ref=args.ref)
+    else:
+        sync_one(skills_dir / args.name, new_ref=args.ref)
+
+
+if __name__ == "__main__":
+    main()
