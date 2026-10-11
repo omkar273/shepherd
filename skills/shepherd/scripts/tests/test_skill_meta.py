@@ -95,3 +95,8 @@ class ParseFrontmatterTests(unittest.TestCase):
             {"name": "writing-plans", "description": "Use when you have a spec."},
         )
 
+    def test_strips_surrounding_quotes(self):
+        text = 'name: brainstorming\ndescription: "Explore before building."\n'
+        result = skill_meta.parse_frontmatter(text)
+        self.assertEqual(result["description"], "Explore before building.")
+
