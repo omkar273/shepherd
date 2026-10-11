@@ -68,3 +68,6 @@ class ShepherdTests(unittest.TestCase):
     def test_thirty_skills(self):
         self.assertEqual(len(skill_dirs()), 30)
 
+    def test_router_under_budget(self):
+        self.assertLessEqual(len((SHEPHERD / "SKILL.md").read_text()) / 4, 5000)
+
