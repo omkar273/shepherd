@@ -35,3 +35,8 @@ def format_kv_block(data):
     return "\n".join(f"{key}: {value}" for key, value in data.items()) + "\n"
 
 
+def read_origin(skill_dir):
+    path = Path(skill_dir) / ".origin.yaml"
+    return parse_kv_block(path.read_text())
+
+
