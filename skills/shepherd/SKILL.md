@@ -39,6 +39,8 @@ already exists. Subtract before you add.
 | A bug or a failing test | the superpowers `systematic-debugging` skill |
 | About to say a change is done | the superpowers `verification-before-completion` skill |
 | "Set up", "update", "add" or "status" for skills | `skills.md` |
+| Installing or removing a pack | `skills.md` |
+| Adding or removing a catalog skill | `curate.md` |
 | A long, slow, or messy session | `context.md` |
 
 If a superpowers skill above is not installed, do its step yourself: settle the
@@ -55,6 +57,17 @@ the code files and the repo's own docs; don't invent language rules.
   0.5 or less. Turn PDFs into text with `pdftotext`.
 - View source with Read and search with Grep, not `cat` or `sed`. Don't
   re-read a file you just edited.
+
+## Packs (experimental)
+
+Domain skills wait in a catalog and install on demand. When the task fits a
+pack below that `catalog.py list` shows as not installed, offer it once per
+session: "This looks like <domain> work; the <pack> pack (<skills>) would
+help. Install it?" On yes, follow the Packs procedure in `skills.md`. Never
+install without a yes.
+
+| Pack | Cues | Skills |
+|---|---|---|
 
 ## The ladder
 

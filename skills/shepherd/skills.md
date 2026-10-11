@@ -62,3 +62,15 @@ Summarize:
 - vendored skills that are behind their source
 - uncommitted changes
 - days since the last update
+
+## Packs: "install the <pack> pack", "remove a pack", "what packs are there"
+
+- **List:** `catalog.py list` shows each pack, its skills, and whether it is
+  installed.
+- **Install:** say which skills the pack adds and wait for a yes. Then run
+  `catalog.py install <pack>` and report what was linked and backed up. If a
+  new skill doesn't show up in the session, say: restart Claude Code to load
+  it.
+- **Remove:** `catalog.py uninstall <pack>` removes only the pack's links.
+- **Clean the cache:** only when asked, `catalog.py prune`.
+- **Add or remove a catalog skill:** follow `curate.md`.

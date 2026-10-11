@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import catalog
 import gen_catalog
 import skill_meta
 import sync_skill
@@ -77,6 +78,25 @@ class ShepherdTests(unittest.TestCase):
         self.assertTrue(paths)
         missing = [p for p in sorted(paths) if not (SHEPHERD / p).exists()]
         self.assertEqual(missing, [])
+
+
+class CatalogRepoTests(unittest.TestCase):
+    def router_pack_rows(self):
+        text = (SHEPHERD / "SKILL.md").read_text()
+        section = text.split("## Packs (experimental)", 1)[1].split("\n## ", 1)[0]
+        rows = [l for l in section.splitlines() if l.startswith("| ") and not l.startswith("| Pack ")]
+        return [r.split("|")[1].strip() for r in rows]
+
+    def test_router_pack_names_exist_in_catalog(self):
+        packs = catalog.load(catalog.CATALOG)["packs"]
+        self.assertEqual([p for p in self.router_pack_rows() if p not in packs], [])
+
+    def test_catalog_check_passes(self):
+        self.assertEqual(catalog.check(catalog.load(catalog.CATALOG), catalog.REPO), [])
+
+    @unittest.expectedFailure
+    def test_core_is_eleven(self):
+        self.assertEqual(len(skill_dirs()), 11)
 
 
 if __name__ == "__main__":
