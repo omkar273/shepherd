@@ -45,11 +45,11 @@ class LinkSkillsTests(unittest.TestCase):
         self.assertEqual(len(repo_links(self.agents)), SKILL_COUNT)
 
     def test_real_dir_backed_up(self):
-        (self.claude / "graphify").mkdir(parents=True)
-        (self.claude / "graphify" / "old.txt").write_text("old")
+        (self.claude / "research").mkdir(parents=True)
+        (self.claude / "research" / "old.txt").write_text("old")
         report = run(self.home)
-        self.assertTrue((self.claude / "graphify").is_symlink())
-        self.assertIn("claude/graphify", report["backed_up"])
+        self.assertTrue((self.claude / "research").is_symlink())
+        self.assertIn("claude/research", report["backed_up"])
         self.assertTrue(any(p.name == "old.txt" for p in self.backups()))
 
     def test_foreign_link_backed_up(self):
@@ -76,12 +76,12 @@ class LinkSkillsTests(unittest.TestCase):
         self.assertIn("agents/review", report["untouched"])
 
     def test_dry_run_changes_nothing(self):
-        (self.claude / "graphify").mkdir(parents=True)
+        (self.claude / "research").mkdir(parents=True)
         before = snapshot(self.home)
         report = run(self.home, "--dry-run", "--retire")
         self.assertEqual(snapshot(self.home), before)
         self.assertEqual(len(report["linked"]), 2 * SKILL_COUNT - 1)
-        self.assertIn("claude/graphify", report["backed_up"])
+        self.assertIn("claude/research", report["backed_up"])
 
     def test_second_run_noop(self):
         run(self.home, "--retire")

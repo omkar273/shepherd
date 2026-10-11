@@ -131,8 +131,8 @@ class StatusTests(Base):
         self.assertIn("packs_available", report)
 
     def test_reports_shadowed(self):
-        (self.home / ".claude" / "skills" / "graphify").mkdir(parents=True)
-        self.assertIn("claude/graphify", self.status()["shadowed"])
+        (self.home / ".claude" / "skills" / "research").mkdir(parents=True)
+        self.assertIn("claude/research", self.status()["shadowed"])
 
 
 if __name__ == "__main__":

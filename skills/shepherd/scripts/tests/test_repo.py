@@ -12,14 +12,10 @@ import sync_skill
 SKILLS_DIR = Path(__file__).resolve().parents[3]
 README = SKILLS_DIR.parent / "README.md"
 
-MATT = {
-    "ask-matt", "codebase-design", "domain-modeling", "grill-with-docs", "implement",
-    "implement-spec", "improve-codebase-architecture", "pr", "prototype", "research",
-    "retro", "setup-matt-pocock-skills", "to-spec", "to-tickets", "triage", "wayfinder",
-    "wizard", "grill-me", "grilling", "handoff", "teach", "to-questionnaire", "wait-what",
-    "writing-for-agents", "git-guardrails-claude-code", "setup-pre-commit",
+CORE = {
+    "shepherd", "codebase-design", "domain-modeling", "grilling", "pr", "prototype", "research",
+    "wizard", "writing-for-agents", "git-guardrails-claude-code", "setup-pre-commit",
 }
-OTHERS = {"frontend-design", "ui-ux-pro-max", "graphify"}
 
 
 def skill_dirs():
@@ -27,9 +23,8 @@ def skill_dirs():
 
 
 class RepoTests(unittest.TestCase):
-    def test_expected_skills_present(self):
-        names = {p.name for p in skill_dirs()}
-        self.assertEqual(MATT | OTHERS, (MATT | OTHERS) & names)
+    def test_core_skills_present(self):
+        self.assertEqual({p.name for p in skill_dirs()}, CORE)
 
     def test_skill_names_match_folders(self):
         for skill_dir in skill_dirs():
@@ -66,9 +61,6 @@ class ShepherdTests(unittest.TestCase):
     def test_shepherd_name(self):
         self.assertEqual(skill_meta.read_skill_frontmatter(SHEPHERD).get("name"), "shepherd")
 
-    def test_thirty_skills(self):
-        self.assertEqual(len(skill_dirs()), 30)
-
     def test_router_under_budget(self):
         self.assertLessEqual(len((SHEPHERD / "SKILL.md").read_text()) / 4, 5000)
 
@@ -94,7 +86,6 @@ class CatalogRepoTests(unittest.TestCase):
     def test_catalog_check_passes(self):
         self.assertEqual(catalog.check(catalog.load(catalog.CATALOG), catalog.REPO), [])
 
-    @unittest.expectedFailure
     def test_core_is_eleven(self):
         self.assertEqual(len(skill_dirs()), 11)
 
