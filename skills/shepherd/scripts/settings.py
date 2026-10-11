@@ -24,3 +24,17 @@ def add_hook(data, event, command, matcher):
     return data
 
 
+def remove_hook(data, event, command, matcher):
+    hooks = data.get("hooks", {})
+    groups = []
+    for group in hooks.get(event, []):
+        group["hooks"] = [h for h in group.get("hooks", []) if h.get("command") != command]
+        if group["hooks"]:
+            groups.append(group)
+    if groups:
+        hooks[event] = groups
+    else:
+        hooks.pop(event, None)
+    return data
+
+
