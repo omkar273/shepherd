@@ -204,29 +204,16 @@ scored against a rubric, trialled against a run without it, and committed with
 a decision record that names the commit reviewed. The procedure is in
 [`curate.md`](skills/shepherd/curate.md).
 
-## Roadmap
-
-These are in design. Nothing below has shipped yet.
-
-- **Context hygiene hooks:** warn when a session passes 200k tokens, trim long
-  command output to its head and tail with the full log saved, and redirect
-  whole-file dumps to ranged reads.
-- **Learning from corrections:** when you reject a finding or undo a cut,
-  `shepherd` records a lesson for that repo. Promoting lessons into the core
-  rules happens only on request, with an eval run.
-- **More packs:** `frontend-design`, `ui-ux-pro-max`, and `graphify` left the
-  core and wait on curation through [`curate.md`](skills/shepherd/curate.md),
-  as do content skills.
-
 ## Add value
 
-The contributions that help most each end as a new eval case:
+The contributions that help most:
 
 1. **A check `shepherd` cut that mattered**, or one it should have cut: open
-   a bug report with the code shape. It becomes a fixture, then a rule.
+   a bug report with the code shape.
 2. **A language file:** `skills/shepherd/lang/<language>.md` with the same four
    headings (keep, cut, boundaries, wiring).
-3. **An eval fixture** for a stack the evals don't cover yet.
+3. **An eval fixture** for a stack the evals don't cover yet; see
+   [Adding a case](evals/README.md#adding-a-case).
 4. **A skill proposal:** use the skill request form.
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) before you start. Everyone involved
