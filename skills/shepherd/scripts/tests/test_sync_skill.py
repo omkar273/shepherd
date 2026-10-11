@@ -101,3 +101,38 @@ class SyncOneTests(unittest.TestCase):
         self.assertEqual(origin["source_ref"], "abc1234")
 
 
+class SyncAllTests(unittest.TestCase):
+    def test_all_clones_each_source_once(self):
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+        skills_dir = Path(tmp) / "skills"
+        url = "https://example.com/up.git"
+        calls = []
+
+        def fake_clone(source, dest):
+            calls.append(source)
+            for name in ("a", "b", "c"):
+                d = Path(dest) / "skills" / name
+                d.mkdir(parents=True)
+                (d / "SKILL.md").write_text(f"new {name}")
+
+        for name in ("a", "b", "c"):
+            skill_dir = skills_dir / name
+            skill_dir.mkdir(parents=True)
+            (skill_dir / "SKILL.md").write_text("old")
+            skill_meta.write_origin(skill_dir, {
+                "origin": "vendored", "source_repo": url,
+                "source_path": f"skills/{name}", "source_ref": "old",
+                "snapshotted_at": "2026-01-01",
+            })
+
+        sync_skill.sync_all(skills_dir, clone=fake_clone, get_head=lambda path: "abc1234")
+
+        self.assertEqual(calls, [url])
+        for name in ("a", "b", "c"):
+            self.assertEqual((skills_dir / name / "SKILL.md").read_text(), f"new {name}")
+            self.assertEqual(skill_meta.read_origin(skills_dir / name)["source_ref"], "abc1234")
+
+
+if __name__ == "__main__":
+    unittest.main()
