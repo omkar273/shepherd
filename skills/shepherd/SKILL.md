@@ -1,6 +1,15 @@
 ---
 name: shepherd
 description: Use when writing, changing, or reviewing code in any repo - implementing a feature or fix, refactoring, reviewing a teammate's pull request, a branch, or a diff (before or alongside code-review), debugging, planning a multi-file change, or wrapping up a change before saying it is done - whenever about to add a helper, wrapper, interface, layer, option, defensive check, or test the task did not ask for, and when setting up, updating, adding, or checking skills.
+hooks:
+  UserPromptSubmit:
+    - hooks:
+        - type: command
+          command: 'python3 "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/skills/shepherd}/hooks/capture.py" turn || true'
+  Stop:
+    - hooks:
+        - type: command
+          command: 'python3 "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/skills/shepherd}/hooks/capture.py" turn || true'
 ---
 
 # Shepherd
@@ -15,16 +24,19 @@ already exists. Subtract before you add.
    the path from the root down to each directory you touch. Read its lint
    config and its check scripts (Makefile, `package.json` scripts, CI
    workflow). Repo rules beat this skill.
-2. Docs drift. Before relying on a file, helper, or mechanism a doc names,
+2. Run `python3 <shepherd>/hooks/capture.py lessons` (`<shepherd>` is this
+   skill's folder) and follow what it prints. Precedence: repo docs, then the
+   never-cut list in `code/defensive.md`, then lessons, then this skill.
+3. Docs drift. Before relying on a file, helper, or mechanism a doc names,
    confirm it exists in the code.
-3. Recorded decisions (ADRs, architecture notes) beat the cut list: don't flag
+4. Recorded decisions (ADRs, architecture notes) beat the cut list: don't flag
    what one justifies. A new package or module boundary is itself a decision;
    don't create one inside a feature change unless the user or a recorded
    decision asks for it.
-4. If the repo ships its own build or review skill or workflow (for example
+5. If the repo ships its own build or review skill or workflow (for example
    `.agents/skills/review`), follow its process and report format; shepherd's
    checks run inside it.
-5. Route:
+6. Route:
 
 | Situation | Read or use |
 |---|---|
@@ -42,6 +54,7 @@ already exists. Subtract before you add.
 | Installing or removing a pack | `skills.md` |
 | Adding or removing a catalog skill | `curate.md` |
 | A long, slow, or messy session | `context.md` |
+| "Consolidate shepherd lessons", "revert shepherd <commit>" | `learn.md` |
 
 If a superpowers skill above is not installed, do its step yourself: settle the
 goal and a short plan before a multi-file edit, find the root cause before
@@ -57,6 +70,24 @@ the code files and the repo's own docs; don't invent language rules.
   0.5 or less. Turn PDFs into text with `pdftotext`.
 - View source with Read and search with Grep, not `cat` or `sed`. Don't
   re-read a file you just edited.
+
+## Learning
+
+When the user corrects your work, record it from inside the repo:
+`python3 <shepherd>/hooks/capture.py signal --kind <kind> --rule "<shepherd rule>" --evidence "<file:line> <one-line paraphrase>"`
+
+- `reject`: they reject or edit a finding before it is posted, or say a
+  check, abstraction, or file was needed.
+- `revert`: they undo a cut.
+- `restore`: a removed check had to come back because a test failed.
+- `accept`: they approve posting a review; the evidence names the findings
+  that went out and the ones dropped.
+
+Evidence never holds secrets or code. For a clear, repo-specific reject,
+revert, or restore, add `--lesson "<what to do in this repo, and why>"`; to
+count an existing lesson again, pass its exact text. If the lesson would
+weaken the never-cut list, add `--flag never-cut` instead and tell the user it
+was not applied. Relay what the script prints, including a full lessons file.
 
 ## Packs (experimental)
 

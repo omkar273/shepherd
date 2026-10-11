@@ -1,6 +1,7 @@
 import datetime
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -10,12 +11,24 @@ import unittest
 from pathlib import Path
 
 CAPTURE = Path(__file__).resolve().parents[2] / "hooks" / "capture.py"
+SKILL = Path(__file__).resolve().parents[2] / "SKILL.md"
 TODAY = datetime.date.today().isoformat()
 GIT_ENV = {
     "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1",
     "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.com",
     "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@example.com",
 }
+
+
+def hook_commands():
+    """The command each event runs, from the hooks block in SKILL.md's frontmatter."""
+    commands, event = {}, None
+    for line in SKILL.read_text().split("---", 2)[1].splitlines():
+        if match := re.match(r"^  (\w+):$", line):
+            event = match[1]
+        elif (match := re.match(r"^\s+command: '(.*)'$", line)) and event:
+            commands[event] = match[1].replace("''", "'")
+    return commands
 
 
 def ago(days):
@@ -242,6 +255,46 @@ class LessonsTests(Base):
         os.utime(stamp, (stale, stale))
         self.run_capture("lessons", cwd=self.repo)
         self.assertGreater(stamp.stat().st_mtime, time.time() - 60)
+
+
+class HookCommandTests(Base):
+    """Runs the frontmatter hook commands the way Claude Code does: sh -c, JSON on stdin."""
+
+    def setUp(self):
+        super().setUp()
+        (self.root / "hooks").mkdir()
+        shutil.copy(CAPTURE, self.root / "hooks" / "capture.py")
+        self.env.pop("CLAUDE_PLUGIN_ROOT", None)
+        # A real interpreter first on PATH: version-manager shims break under a different HOME.
+        (self.tmp / "bin").mkdir()
+        (self.tmp / "bin" / "python3").symlink_to(sys.executable)
+        self.env["PATH"] = f"{self.tmp / 'bin'}{os.pathsep}{self.env['PATH']}"
+        self.commands = hook_commands()
+
+    def run_hook(self, event, payload, **env):
+        return subprocess.run(["sh", "-c", self.commands[event]], input=json.dumps(payload),
+                              capture_output=True, text=True, env={**self.env, **env})
+
+    def test_prompt_and_reply_recorded(self):
+        self.assertEqual(set(self.commands), {"UserPromptSubmit", "Stop"})
+        self.run_hook("UserPromptSubmit", {"session_id": "s", "cwd": "/", "hook_event_name": "UserPromptSubmit",
+                                           "prompt": "fix it"}, CLAUDE_PLUGIN_ROOT=str(self.root))
+        self.run_hook("Stop", {"session_id": "s", "cwd": "/", "hook_event_name": "Stop",
+                               "last_assistant_message": "fixed"}, CLAUDE_PLUGIN_ROOT=str(self.root))
+        self.assertEqual([e["text"] for e in self.lines("turns.jsonl")], ["fix it", "fixed"])
+
+    def test_falls_back_to_installed_skill(self):
+        home = self.tmp / "home"
+        (home / ".claude" / "skills").mkdir(parents=True)
+        (home / ".claude" / "skills" / "shepherd").symlink_to(self.root)
+        self.run_hook("Stop", {"session_id": "s", "cwd": "/", "hook_event_name": "Stop",
+                               "last_assistant_message": "fixed"}, HOME=str(home))
+        self.assertEqual(len(self.lines("turns.jsonl")), 1)
+
+    def test_missing_script_never_blocks_the_prompt(self):
+        result = self.run_hook("UserPromptSubmit", {"hook_event_name": "UserPromptSubmit", "prompt": "x"},
+                               CLAUDE_PLUGIN_ROOT=str(self.tmp / "missing"))
+        self.assertEqual(result.returncode, 0)
 
 
 if __name__ == "__main__":

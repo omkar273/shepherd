@@ -215,6 +215,28 @@ It also offers `autoCompactWindow: 300000` and a status line with context %.
 Say **"prune skills for this repo"** to see which skills and plugins a repo
 never used in 30 days and turn them down in its `.claude/settings.local.json`.
 
+### Learning from corrections
+
+`shepherd` learns from your corrections, with no scheduled job:
+
+- When you reject a finding, undo a cut, or bring back a check, `shepherd`
+  records the correction. If the correction is specific to the repo, it adds a
+  lesson that applies from the next session.
+- Repo lessons stay on your machine in `skills/shepherd/lessons/repos/`, a
+  separate local git repo that is never pushed with this one. Each lesson is a
+  commit named `lesson(<owner-repo>): ...`. To share them across machines,
+  give that repo a private remote.
+- While a session uses `shepherd`, hooks log its prompts and replies to the
+  gitignored `skills/shepherd/inbox/` for 30 days. Nothing leaves your machine.
+- Say **"consolidate shepherd lessons"** to promote lessons seen in several
+  repos to `lessons/global.md` or the core rules. You see the diff first, and
+  nothing changes without your yes.
+- A lesson that would weaken the never-cut list is never applied.
+- Undo any change with `git revert`, or say **"revert shepherd <commit>"**.
+
+The procedure is in [`learn.md`](skills/shepherd/learn.md). Learning needs the
+full setup; the plugin and `npx skills` installs record nothing.
+
 ## Update
 
 - **Just shepherd:** `claude plugin update shepherd@shepherd`, or
