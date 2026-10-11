@@ -46,3 +46,10 @@ class SettingsTests(Base):
         self.assertEqual(result.stdout.strip(), "")
         self.assertEqual(len(self.hooks()), 1)
 
+    def test_keeps_other_keys(self):
+        self.settings.write_text(json.dumps({"model": "opus", "hooks": {"Stop": [{"hooks": []}]}}))
+        self.add("--write")
+        data = json.loads(self.settings.read_text())
+        self.assertEqual(data["model"], "opus")
+        self.assertIn("Stop", data["hooks"])
+
