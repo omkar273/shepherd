@@ -1,7 +1,7 @@
 ## Shepherd
 
-For any coding task (write, review, plan, debug) or skills task, use the
-`shepherd` skill first.
+For any code change, PR review, plan, or debugging, and for any skills task,
+use the `shepherd` skill first.
 
 - Repo `CLAUDE.md`/`AGENTS.md` and lint rules win over generic advice.
 - Take the first rung that holds: not needed, already in the repo, stdlib,
