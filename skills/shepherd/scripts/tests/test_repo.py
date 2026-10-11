@@ -30,3 +30,8 @@ class RepoTests(unittest.TestCase):
         names = {p.name for p in skill_dirs()}
         self.assertEqual(MATT | OTHERS, (MATT | OTHERS) & names)
 
+    def test_skill_names_match_folders(self):
+        for skill_dir in skill_dirs():
+            name = skill_meta.read_skill_frontmatter(skill_dir).get("name")
+            self.assertEqual(name, skill_dir.name, skill_dir)
+
