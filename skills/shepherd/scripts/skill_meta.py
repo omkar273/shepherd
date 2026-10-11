@@ -13,3 +13,20 @@ import re
 from pathlib import Path
 
 
+def parse_kv_block(text):
+    """Parse flat 'key: value' lines into a dict, splitting only on the
+    FIRST ':' so values containing ':' (like URLs) stay intact. Blank
+    lines and '#' comments are ignored. An empty value (e.g. 'key:' or
+    'key: ') parses to '' rather than being dropped."""
+    result = {}
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if ":" not in line:
+            continue
+        key, _, value = line.partition(":")
+        result[key.strip()] = value.strip()
+    return result
+
+
