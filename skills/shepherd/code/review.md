@@ -50,3 +50,21 @@ Each finding is: `file:line`, what it is, evidence, fix.
   not a finding.
 - Issues the repo's linter catches: say "lint will flag these" once.
 
+## Draft for the user
+
+Show the draft in chat. Never post it on your own.
+
+```text
+Verdict: comment | request changes   Lean: -<N> lines   Not checked: <...>
+
+MUST    broken wiring, a removed never-cut check, behavior the PR breaks
+SHOULD  HIGH-tier checks, cut-list abstractions, out-of-scope hunks
+ASK     MEDIUM-tier checks, phrased as a question
+Outside lean    one line each
+```
+
+Number findings across all groups. Pure deletions get a GitHub
+`suggestion` block so the author can apply them in one click. If the repo has
+its own review format, map MUST and SHOULD to its "act on" level and ASK to its
+"consider" level.
+
