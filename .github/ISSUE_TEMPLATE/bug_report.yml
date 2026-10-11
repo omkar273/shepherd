@@ -1,0 +1,32 @@
+name: Bug report
+description: Setup, a script, or a skill does something wrong.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Run `python3 skills/shepherd/scripts/link_skills.py --dry-run`
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: status
+    attributes:
+      label: Output of `python3 skills/shepherd/scripts/status.py`
+      render: json
+  - type: input
+    id: versions
+    attributes:
+      label: OS, Python and Claude Code versions
+      placeholder: macOS 26, Python 3.14, Claude Code 2.1.x
+    validations:
+      required: true
