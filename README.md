@@ -1,21 +1,100 @@
-# skills
+# shepherd
 
-One skill to rely on, `shepherd`, plus the skills it routes to. Clone this repo
-on any machine and tell your agent "set up my skills".
+One skill that keeps your coding agent lean, routes every task to the right
+playbook, and manages the rest of your skills.
 
-`shepherd` is not affiliated with `shepherd-agents/shepherd`.
+`shepherd` is an [Agent Skill](https://docs.claude.com/en/docs/claude-code/skills)
+for Claude Code. Agents that read `~/.agents/skills` can use it too. It is not
+affiliated with `shepherd-agents/shepherd`.
 
-## Setup
+## Why
+
+Coding agents are capable and eager, and the eagerness costs you:
+
+- Wrappers, one-implementation interfaces, and helpers with a single caller.
+- Defensive checks that can never fire, and, worse, removal of checks that
+  matter, such as tenant scoping, because "another layer already does it".
+- Code reviews that ask for more code: a shared helper, a new layer, more
+  tests.
+- Wiring gaps: a route that is never registered, an error code with no status.
+- Sessions that grow until the model gets worse at the task.
+
+`shepherd` gives the agent one entry point with a small set of rules that
+subtract before they add, and hands each task to the section or skill that
+owns it.
+
+## What changes
+
+Measured on the synthetic repos in [`evals/`](evals/README.md): the same
+prompts, fresh agents, scored against an answer key the agents never see. The
+rules shown here are the ones `shepherd` carries, measured on 2026-10-11 under
+their earlier name, `lean`.
+
+| | Without the rules | With them |
+|---|---|---|
+| PR review: planted problems caught | 25 of 27 | 27 of 27 |
+| PR review: essential checks wrongly flagged for removal | 1 | 0 |
+| Same feature, lines added (Go / TypeScript) | 310 / 132 | 125 / 59 |
+
+Rerun them yourself; the guide is in [`evals/README.md`](evals/README.md).
+
+## Quick start
 
 ```bash
 git clone https://github.com/omkar273/shepherd ~/src-code/shepherd
 ```
 
-Then, in Claude Code inside the clone: "set up my skills". Setup links every
-skill into `~/.claude/skills` and `~/.agents/skills`, backs up anything it
-replaces, and shows every settings change before writing it.
+Open Claude Code in that folder and say **"set up my skills"**. Setup:
 
-## Skills
+- links each skill into `~/.claude/skills` and `~/.agents/skills`
+- moves anything it would replace to `~/.skills-backup/<date>/`, and never
+  deletes
+- writes one marked block into `~/.claude/CLAUDE.md`
+- shows a diff and asks before it touches `~/.claude/settings.json`
+- installs the [superpowers](https://github.com/obra/superpowers) plugin if it
+  is missing
+
+Running setup again is safe: a second run changes nothing.
+
+## How it works
+
+```mermaid
+flowchart LR
+  task[Your task] --> router{shepherd}
+  router -->|write or change code| write[code/write.md]
+  router -->|review a PR| review[code/review.md]
+  write --> rules[code/defensive.md + lang/*]
+  review --> rules
+  router -->|plan, debug, verify| sp[superpowers skills]
+  router -->|long or messy session| ctx[context.md]
+  router -->|set up or update skills| mgmt[skills.md]
+```
+
+The router stays under 5,000 tokens, which is what Claude Code keeps after it
+compacts a session. Everything else loads only when the task needs it, and a
+Go change never loads the TypeScript rules.
+
+The rules, briefly:
+
+- **The ladder:** not needed, then already in the repo, then the standard
+  library, then an existing dependency, then minimal new code.
+- **The cut list:** one-implementation interfaces, pass-through functions,
+  one-caller helpers, flags nobody sets, stubs, comments that restate code,
+  edits nobody asked for.
+- **The never-cut list:** authentication, tenant scoping, money invariants,
+  state guards, rollback and cleanup, even when another layer also checks.
+- **The diff contract:** the requested behavior, correct under failure; its
+  wiring; tests the repo requires; adjacent bug fixes, each named. Nothing
+  else.
+- **Reviews:** every fix deletes, inlines, moves, or wires code. Ideas that
+  add code go under "Outside lean".
+
+## What's inside
+
+Skills marked `mine` are authored here. Vendored skills record their source in
+`.origin.yaml` and are re-synced, never edited by hand. Several of Matt
+Pocock's skills are slash commands you run yourself, such as `/grill-me` and
+`/to-spec`.
 
 <!-- CATALOG:START -->
 
@@ -60,3 +139,63 @@ replaces, and shows every settings change before writing it.
 | `writing-for-agents` | Writing documents for agents. Use when creating or editing skills, or modifying AGENTS.md or CLAUDE.md. | https://github.com/mattpocock/skills |
 
 <!-- CATALOG:END -->
+
+## Keeping it current
+
+- **"update my skills"** pulls this repo, re-syncs vendored skills from their
+  sources, shows you the diff, and commits on your yes.
+- **"skills status"** reports missing, broken, or shadowed links, vendored
+  skills behind their source, and days since the last update.
+- Optionally, a session-start nudge reminds you after 7 days.
+
+## Roadmap
+
+These are in design. Nothing below has shipped yet.
+
+- **Context hygiene hooks:** warn when a session passes 200k tokens, trim long
+  command output to its head and tail with the full log saved, and redirect
+  whole-file dumps to ranged reads.
+- **Learning from corrections:** when you reject a finding or undo a cut,
+  `shepherd` records a lesson for that repo. Promoting lessons into the core
+  rules happens only on request, with an eval run.
+- **Skill catalog:** domain packs (content, design, and more) that are
+  fetched on demand from pinned sources and offered when a task needs them.
+  Every addition or removal is justified by a rubric and a trial run, and the
+  decision is committed as a record.
+
+## Add value
+
+The contributions that help most each end as a new eval case:
+
+1. **A check `shepherd` cut that mattered**, or one it should have cut: open
+   a bug report with the code shape. It becomes a fixture, then a rule.
+2. **A language file:** `skills/shepherd/lang/<language>.md` with the same four
+   headings (keep, cut, boundaries, wiring).
+3. **An eval fixture** for a stack the evals don't cover yet.
+4. **A skill proposal:** use the skill request form.
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before you start. Everyone involved
+follows the [code of conduct](CODE_OF_CONDUCT.md). Report vulnerabilities as
+described in [SECURITY.md](SECURITY.md).
+
+## Uninstall
+
+```bash
+find ~/.claude/skills ~/.agents/skills -maxdepth 1 -lname "$HOME/src-code/shepherd/*" -delete
+```
+
+That removes only the links into this clone. Then delete the block between
+`<!-- skills:begin -->` and `<!-- skills:end -->` in `~/.claude/CLAUDE.md`.
+Anything setup replaced is in `~/.skills-backup/`.
+
+## Credits and license
+
+- Engineering and productivity skills by
+  [Matt Pocock](https://github.com/mattpocock/skills), MIT.
+- [superpowers](https://github.com/obra/superpowers) by Jesse Vincent,
+  installed as a plugin rather than vendored.
+- `frontend-design`, `ui-ux-pro-max` and `graphify` come from their upstream
+  projects; see [NOTICE](NOTICE).
+
+Released under the [MIT License](LICENSE). Vendored skills keep their own
+licenses.
