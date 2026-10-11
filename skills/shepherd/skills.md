@@ -37,14 +37,17 @@ and for an update give them `npx skills update shepherd` or
 ## Update: "update my skills"
 
 1. Run `git -C <repo> pull --rebase --autostash -q`.
-2. Run `sync_skill.py --all`, then `git -C <repo> diff --stat -- skills`.
-   Summarize what changed in each skill.
-3. On yes:
-   - commit `chore: sync vendored skills`
-   - run `git -C <repo> push -q`
-
-   On no, run `git -C <repo> checkout -- skills`.
-4. Run `link_skills.py`, `gen_catalog.py`, then `state.py stamp --repo <repo>`.
+2. Run `GIT_TERMINAL_PROMPT=0 git -C <repo> push --dry-run -q`. If it fails,
+   the user can't push this clone: go to step 4. Their vendored updates arrive
+   with the pull, and the clone stays a clean copy of upstream.
+3. Sync vendored skills:
+   - Run `sync_skill.py --all` and `gen_catalog.py`, then
+     `git -C <repo> diff --stat -- skills README.md`. Summarize what changed
+     in each skill.
+   - On yes, commit the synced skills and the catalog as
+     `chore: sync vendored skills`, then run `git -C <repo> push -q`.
+   - On no, run `git -C <repo> checkout -- skills`, then `gen_catalog.py`.
+4. Run `link_skills.py`, then `state.py stamp --repo <repo>`.
 
 ## Add: "add skill X"
 

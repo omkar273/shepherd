@@ -180,8 +180,10 @@ Skills marked `mine` are authored here. Vendored skills record their source in
 
 ## Keeping it current
 
-- **"update my skills"** pulls this repo, re-syncs vendored skills from their
-  sources, shows you the diff, and commits and pushes on your yes.
+- **"update my skills"** pulls this repo and relinks the skills. If you can
+  push to your clone's remote, it also re-syncs vendored skills from their
+  sources, shows you the diff, and commits and pushes on your yes; otherwise
+  the vendored updates arrive with the pull.
 - **"skills status"** reports missing, broken, or shadowed links, vendored
   skills behind their source, installed and available packs, and days since
   the last update.
