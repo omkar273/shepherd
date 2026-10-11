@@ -10,6 +10,6 @@ person, and keep discussion on topic. Harassment of any kind is not tolerated.
 
 Report unacceptable behavior privately to the maintainer,
 [@omkar273](https://github.com/omkar273), through
-[a private report](https://github.com/omkar273/skills/security/advisories/new)
+[a private report](https://github.com/omkar273/shepherd/security/advisories/new)
 on this repository. Reports are read only by the maintainer and handled in
 confidence.

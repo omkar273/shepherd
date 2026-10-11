@@ -8,7 +8,7 @@ on any machine and tell your agent "set up my skills".
 ## Setup
 
 ```bash
-git clone https://github.com/omkar273/skills ~/src-code/skills
+git clone https://github.com/omkar273/shepherd ~/src-code/shepherd
 ```
 
 Then, in Claude Code inside the clone: "set up my skills". Setup links every

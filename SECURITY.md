@@ -23,7 +23,7 @@ Only the latest commit on `main` is supported.
 ## Reporting a vulnerability
 
 Do not open a public issue. Report it privately through
-[GitHub's private vulnerability reporting](https://github.com/omkar273/skills/security/advisories/new),
+[GitHub's private vulnerability reporting](https://github.com/omkar273/shepherd/security/advisories/new),
 with the steps to reproduce and the files affected.
 
 You can expect an acknowledgement within 7 days and a fix or a decision within
