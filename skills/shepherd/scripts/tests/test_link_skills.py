@@ -100,3 +100,14 @@ class LinkSkillsTests(unittest.TestCase):
                       if p.parent.name == "agents")
         self.assertEqual((backup / "SKILL.md").read_text(), "old lean")
 
+    def test_retired_real_dir_backed_up(self):
+        (self.claude / "pricing-setup").mkdir(parents=True)
+        report = run(self.home)
+        self.assertIn("claude/pricing-setup", report["untouched"])
+        report = run(self.home, "--retire")
+        self.assertFalse(os.path.lexists(self.claude / "pricing-setup"))
+        self.assertIn("claude/pricing-setup", report["retired"])
+
+
+if __name__ == "__main__":
+    unittest.main()
