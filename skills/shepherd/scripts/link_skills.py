@@ -16,3 +16,7 @@ RETIRED_FILE = SKILLS_DIR.parent / "setup" / "retired.txt"
 RUNTIMES = {"claude": Path(".claude/skills"), "agents": Path(".agents/skills")}
 
 
+def points_into_repo(path):
+    return Path(os.path.realpath(path)).parent == SKILLS_DIR
+
+
