@@ -61,3 +61,7 @@ class RepoTests(unittest.TestCase):
 SHEPHERD = SKILLS_DIR / "shepherd"
 
 
+class ShepherdTests(unittest.TestCase):
+    def test_shepherd_name(self):
+        self.assertEqual(skill_meta.read_skill_frontmatter(SHEPHERD).get("name"), "shepherd")
+
