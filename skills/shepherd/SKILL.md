@@ -77,7 +77,7 @@ When the user corrects your work, record it from inside the repo:
 `python3 <shepherd>/hooks/capture.py signal --kind <kind> --rule "<shepherd rule>" --evidence "<file:line> <one-line paraphrase>"`
 
 - `reject`: they reject or edit a finding before it is posted, or say a
-  check, abstraction, or file was needed.
+  check, abstraction, or file should have been kept or cut.
 - `revert`: they undo a cut.
 - `restore`: a removed check had to come back because a test failed.
 - `accept`: they approve posting a review; the evidence names the findings
