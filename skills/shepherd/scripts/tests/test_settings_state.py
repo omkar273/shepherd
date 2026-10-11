@@ -1,5 +1,7 @@
 import datetime
 import json
+import os
+import re
 import shutil
 import subprocess
 import sys
@@ -168,6 +170,104 @@ class StatusTests(Base):
     def test_reports_shadowed(self):
         (self.home / ".claude" / "skills" / "research").mkdir(parents=True)
         self.assertIn("claude/research", self.status()["shadowed"])
+
+
+def listing(*names):
+    return {"type": "attachment", "attachment": {"type": "skill_listing", "names": list(names)}}
+
+
+def tool_use(name, **tool_input):
+    return {"type": "assistant", "message": {"role": "assistant", "content": [
+        {"type": "tool_use", "id": "toolu_1", "name": name, "input": tool_input}]}}
+
+
+def prompt(text):
+    return {"type": "user", "message": {"role": "user", "content": text}}
+
+
+class CatalogUsageTests(Base):
+    def setUp(self):
+        super().setUp()
+        self.repo = self.home / "work" / "my.app"
+        self.repo.mkdir(parents=True)
+        # Claude Code names project folders this way, e.g. "/a/my.app" -> "-a-my-app".
+        self.slug = re.sub(r"[^A-Za-z0-9]", "-", str(self.repo.resolve()))
+        self.sessions = 0
+
+    def session(self, entries, project=None, days_ago=0):
+        self.sessions += 1
+        folder = self.home / ".claude" / "projects" / (project or self.slug)
+        folder.mkdir(parents=True, exist_ok=True)
+        path = folder / f"session-{self.sessions}.jsonl"
+        path.write_text("".join(json.dumps(e) + "\n" for e in entries))
+        stamp = (datetime.datetime.now() - datetime.timedelta(days=days_ago)).timestamp()
+        os.utime(path, (stamp, stamp))
+        return path
+
+    def report(self):
+        result = run("status.py", self.home, "--catalog", "--repo", str(self.repo))
+        return json.loads(result.stdout)
+
+    def skill(self, report, name):
+        return next(s for s in report["skills"] if s["name"] == name)
+
+    def test_catalog_marks_unused(self):
+        self.session([listing("shepherd", "grilling", "prototype"), tool_use("Skill", skill="shepherd"),
+                      prompt("<command-name>/grilling</command-name>")])
+        report = self.report()
+        self.assertEqual(report["sessions"], 1)
+        self.assertEqual(report["unused_skills"], ["prototype"])
+        self.assertEqual(self.skill(report, "shepherd")["invocations"], 1)
+
+    def test_catalog_kinds(self):
+        (self.home / ".claude" / "skills" / "shepherd").mkdir(parents=True)
+        (self.repo / ".claude" / "skills" / "local").mkdir(parents=True)
+        self.session([listing("shepherd", "local", "simplify", "design:ux-copy")])
+        report = self.report()
+        kinds = {s["name"]: s["kind"] for s in report["skills"]}
+        self.assertEqual(kinds, {"shepherd": "user", "local": "project", "simplify": "builtin",
+                                 "design:ux-copy": "plugin"})
+
+    def test_catalog_counts_bare_plugin_skill_name(self):
+        self.session([listing("superpowers:brainstorming", "design:ux-copy"),
+                      tool_use("Skill", skill="brainstorming")])
+        report = self.report()
+        self.assertEqual(self.skill(report, "superpowers:brainstorming")["invocations"], 1)
+        self.assertEqual(report["unused_plugins"], ["design"])
+
+    def test_catalog_plugin_agents_and_mcp_count(self):
+        plugins = self.home / ".claude" / "plugins"
+        plugins.mkdir(parents=True)
+        (plugins / "installed_plugins.json").write_text(
+            json.dumps({"version": 2, "plugins": {"pt@market": [{"scope": "user"}]}}))
+        self.session([listing("eng:debug", "pt:audit"), tool_use("Agent", subagent_type="eng:reviewer"),
+                      tool_use("mcp__plugin_pt_server__fetch")])
+        report = self.report()
+        self.assertEqual(report["unused_plugins"], [])
+        self.assertEqual(report["plugins"], [{"name": "eng", "key": None, "invocations": 1},
+                                             {"name": "pt", "key": "pt@market", "invocations": 1}])
+
+    def test_catalog_ignores_old_sessions(self):
+        self.session([listing("grilling"), tool_use("Skill", skill="grilling")], days_ago=40)
+        self.session([listing("grilling")])
+        report = self.report()
+        self.assertEqual((report["sessions"], report["unused_skills"]), (1, ["grilling"]))
+
+    def test_catalog_includes_worktrees_and_subagents_not_siblings(self):
+        self.session([listing("grilling", "pr")])
+        self.session([tool_use("Skill", skill="grilling")], project=f"{self.slug}--claude-worktrees-x")
+        self.session([tool_use("Skill", skill="pr")], project=f"{self.slug}/session-1/subagents")
+        self.session([listing("zzz")], project=f"{self.slug}-old")
+        report = self.report()
+        self.assertEqual([s["name"] for s in report["skills"]], ["grilling", "pr"])
+        self.assertEqual(report["unused_skills"], [])
+        self.assertEqual(report["sessions"], 2)
+
+    def test_catalog_no_transcript_text(self):
+        self.session([listing("grilling"), prompt("SECRET-PROMPT-TEXT"),
+                      tool_use("Bash", command="SECRET-COMMAND")])
+        output = run("status.py", self.home, "--catalog", "--repo", str(self.repo)).stdout
+        self.assertNotIn("SECRET", output)
 
 
 if __name__ == "__main__":
