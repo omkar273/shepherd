@@ -83,3 +83,10 @@ class LinkSkillsTests(unittest.TestCase):
         self.assertEqual(len(report["linked"]), 2 * SKILL_COUNT - 1)
         self.assertIn("claude/graphify", report["backed_up"])
 
+    def test_second_run_noop(self):
+        run(self.home, "--retire")
+        report = run(self.home, "--retire")
+        for key in ("linked", "backed_up", "pruned", "retired"):
+            self.assertEqual(report[key], [], key)
+        self.assertEqual(len(report["unchanged"]), 2 * SKILL_COUNT)
+
