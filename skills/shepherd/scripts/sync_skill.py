@@ -29,3 +29,11 @@ def clone_shallow(url, dest):
     subprocess.run(["git", "clone", "--depth", "1", url, str(dest)], check=True)
 
 
+def git_short_head(path):
+    result = subprocess.run(
+        ["git", "-C", str(path), "rev-parse", "--short", "HEAD"],
+        capture_output=True, text=True, check=True,
+    )
+    return result.stdout.strip()
+
+
