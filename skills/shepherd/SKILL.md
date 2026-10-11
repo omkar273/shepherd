@@ -41,6 +41,10 @@ already exists. Subtract before you add.
 | "Set up", "update", "add" or "status" for skills | `skills.md` |
 | A long, slow, or messy session | `context.md` |
 
+If a superpowers skill above is not installed, do its step yourself: settle the
+goal and a short plan before a multi-file edit, find the root cause before
+fixing, and run the checks and read their output before saying done.
+
 Read a `lang/` file before writing the first line in that language. Never read
 a `lang/` file that doesn't match the change. For a language with no file, use
 the code files and the repo's own docs; don't invent language rules.
