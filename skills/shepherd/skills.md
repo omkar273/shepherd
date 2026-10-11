@@ -47,3 +47,11 @@ Run scripts with `python3 <shepherd>/scripts/<script>`. Every script takes
 - Then run `link_skills.py` and `gen_catalog.py`, run the tests from
   `<repo>/AGENTS.md`, and commit.
 
+## Status: "skills status"
+
+Run `status.py`; add `--remote` to compare vendored skills with their sources.
+Summarize:
+- links that are missing, broken, or shadowed
+- vendored skills that are behind their source
+- uncommitted changes
+- days since the last update
