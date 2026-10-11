@@ -58,3 +58,8 @@ class SettingsTests(Base):
         self.assertEqual(self.add("--write").returncode, 1)
         self.assertEqual(self.settings.read_text(), "{not json")
 
+    def test_no_write_without_flag(self):
+        result = self.add()
+        self.assertIn("SessionStart", result.stdout)
+        self.assertFalse(self.settings.exists())
+
