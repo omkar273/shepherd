@@ -1,0 +1,231 @@
+From 62bfc8e9d5643ef5a7d783d332c1e9f74a7565fb Mon Sep 17 00:00:00 2001
+From: teammate <teammate@example.com>
+Date: Sun, 11 Oct 2026 22:25:13 +0530
+Subject: [PATCH] feat: void finalized invoices
+
+---
+ cmd/server/main.go                    |   3 +
+ internal/api/void_handler.go          |  35 +++++++
+ internal/repository/memory/invoice.go |   2 +
+ internal/service/void.go              | 127 ++++++++++++++++++++++++++
+ 4 files changed, 167 insertions(+)
+ create mode 100644 internal/api/void_handler.go
+ create mode 100644 internal/service/void.go
+
+diff --git a/cmd/server/main.go b/cmd/server/main.go
+index edb251b..12c8fa0 100644
+--- a/cmd/server/main.go
++++ b/cmd/server/main.go
+@@ -15,12 +15,15 @@ func main() {
+ 	tx := memory.TxManager{}
+ 
+ 	invoices := service.NewInvoiceService(repo, tx)
++	voids := service.NewVoidService(repo, tx, service.VoidOptions{})
+ 	_ = worker.Register(repo, tx)
+ 
+ 	h := api.NewInvoiceHandler(invoices)
++	vh := api.NewVoidHandler(voids)
+ 	mux := http.NewServeMux()
+ 	mux.HandleFunc("GET /invoices/{id}", h.Get)
+ 	mux.HandleFunc("POST /invoices/{id}/finalize", h.Finalize)
++	mux.HandleFunc("POST /invoices/{id}/void", vh.Void)
+ 
+ 	log.Fatal(http.ListenAndServe(":8080", mux))
+ }
+diff --git a/internal/api/void_handler.go b/internal/api/void_handler.go
+new file mode 100644
+index 0000000..ea51c94
+--- /dev/null
++++ b/internal/api/void_handler.go
+@@ -0,0 +1,35 @@
++package api
++
++import (
++	"encoding/json"
++	"net/http"
++
++	"example.com/billing/internal/service"
++)
++
++type VoidHandler struct {
++	voids service.VoidService
++}
++
++func NewVoidHandler(voids service.VoidService) *VoidHandler {
++	return &VoidHandler{voids: voids}
++}
++
++func (h *VoidHandler) Void(w http.ResponseWriter, r *http.Request) {
++	var req service.VoidRequest
++	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
++		http.Error(w, "invalid body", http.StatusBadRequest)
++		return
++	}
++	req.InvoiceID = r.PathValue("id")
++	if err := req.Validate(); err != nil {
++		http.Error(w, err.Error(), http.StatusBadRequest)
++		return
++	}
++	res, err := h.voids.Void(r.Context(), req)
++	if err != nil {
++		writeError(w, err)
++		return
++	}
++	json.NewEncoder(w).Encode(res)
++}
+diff --git a/internal/repository/memory/invoice.go b/internal/repository/memory/invoice.go
+index 646ac4f..05845b4 100644
+--- a/internal/repository/memory/invoice.go
++++ b/internal/repository/memory/invoice.go
+@@ -2,6 +2,7 @@ package memory
+ 
+ import (
+ 	"context"
++	"sort"
+ 	"sync"
+ 
+ 	"example.com/billing/internal/domain"
+@@ -54,6 +55,7 @@ func (r *InvoiceRepo) List(ctx context.Context, customerID string) ([]*domain.In
+ 			out = append(out, &copied)
+ 		}
+ 	}
++	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
+ 	return out, nil
+ }
+ 
+diff --git a/internal/service/void.go b/internal/service/void.go
+new file mode 100644
+index 0000000..a8b3297
+--- /dev/null
++++ b/internal/service/void.go
+@@ -0,0 +1,127 @@
++package service
++
++import (
++	"context"
++	"errors"
++	"log"
++	"strings"
++	"time"
++
++	"example.com/billing/internal/domain"
++	"example.com/billing/internal/types"
++)
++
++var ErrAlreadyVoided = errors.New("invoice already voided")
++
++type VoidRequest struct {
++	InvoiceID string `json:"-"`
++	Reason    string `json:"reason"`
++}
++
++func (r VoidRequest) Validate() error {
++	if r.InvoiceID == "" {
++		return errors.New("invoice_id is required")
++	}
++	if strings.TrimSpace(r.Reason) == "" {
++		return errors.New("reason is required")
++	}
++	if len(r.Reason) > 500 {
++		return errors.New("reason must be at most 500 characters")
++	}
++	return nil
++}
++
++type VoidResult struct {
++	Invoice     *domain.Invoice
++	RefundCents int64
++}
++
++type VoidOptions struct {
++	NotifyCustomer bool
++}
++
++type VoidReasonFormatter interface {
++	Format(reason string) string
++}
++
++type defaultVoidReasonFormatter struct{}
++
++func (defaultVoidReasonFormatter) Format(reason string) string {
++	return strings.TrimSpace(reason)
++}
++
++type VoidService interface {
++	Void(ctx context.Context, req VoidRequest) (*VoidResult, error)
++}
++
++type voidService struct {
++	repo      domain.InvoiceRepository
++	tx        domain.TxManager
++	formatter VoidReasonFormatter
++	opts      VoidOptions
++}
++
++func NewVoidService(repo domain.InvoiceRepository, tx domain.TxManager, opts VoidOptions) VoidService {
++	return &voidService{repo: repo, tx: tx, formatter: defaultVoidReasonFormatter{}, opts: opts}
++}
++
++func (s *voidService) getInvoice(ctx context.Context, id string) (*domain.Invoice, error) {
++	return s.repo.Get(ctx, id)
++}
++
++func (s *voidService) Void(ctx context.Context, req VoidRequest) (*VoidResult, error) {
++	if s.repo == nil {
++		return nil, errors.New("void service: repo not configured")
++	}
++	if err := req.Validate(); err != nil {
++		return nil, err
++	}
++
++	t, err := s.tx.Begin(ctx)
++	if err != nil {
++		return nil, err
++	}
++	defer t.Rollback()
++
++	inv, err := s.getInvoice(ctx, req.InvoiceID)
++	if err != nil {
++		return nil, err
++	}
++	if inv == nil {
++		return nil, domain.ErrNotFound
++	}
++	if inv.TenantID != types.TenantID(ctx) || inv.EnvironmentID != types.EnvironmentID(ctx) {
++		return nil, domain.ErrNotFound
++	}
++	if inv.Status == domain.StatusVoid {
++		return nil, ErrAlreadyVoided
++	}
++	if inv.Status != domain.StatusFinalized {
++		return nil, ErrInvalidState
++	}
++
++	var refund int64
++	if len(inv.Lines) > 0 {
++		for _, l := range inv.Lines {
++			refund += l.AmountCents
++		}
++	}
++
++	// void the invoice
++	now := time.Now()
++	inv.Status = domain.StatusVoid
++	inv.VoidedAt = &now
++	inv.VoidReason = s.formatter.Format(req.Reason)
++
++	if err := s.repo.Update(ctx, inv); err != nil {
++		log.Printf("void: update failed for %s: %v", inv.ID, err)
++		return nil, err
++	}
++	if s.opts.NotifyCustomer {
++		log.Printf("void: would notify customer %s", inv.CustomerID)
++	}
++	if err := t.Commit(); err != nil {
++		return nil, err
++	}
++	return &VoidResult{Invoice: inv, RefundCents: refund}, nil
++}
+-- 
+2.55.0
+
