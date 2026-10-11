@@ -1,0 +1,26 @@
+name: Skill request
+description: Suggest a skill to add, vendor, or remove.
+labels: [skill]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Request
+      options:
+        - Vendor an existing skill
+        - Write a new skill
+        - Remove or replace a skill
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Source
+      description: For a vendored skill, the repository URL and path.
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: The task it helps with, and how it differs from the skills already here.
+    validations:
+      required: true
