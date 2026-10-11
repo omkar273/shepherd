@@ -25,3 +25,11 @@ class ClaudeMdTests(unittest.TestCase):
         text = self.run_script()
         self.assertEqual(text, f"{BEGIN}\n{BLOCK}{END}\n")
 
+    def test_inserts_block_with_markers(self):
+        self.path.parent.mkdir(parents=True)
+        self.path.write_text("# Mine\n\nkeep me\n")
+        text = self.run_script()
+        self.assertTrue(text.startswith("# Mine\n\nkeep me\n"))
+        self.assertEqual(text.count(BEGIN), 1)
+        self.assertIn(BLOCK, text)
+
