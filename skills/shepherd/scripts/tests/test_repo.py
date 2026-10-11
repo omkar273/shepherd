@@ -50,3 +50,14 @@ class RepoTests(unittest.TestCase):
                 self.assertTrue(origin.get("source_path"), skill_dir)
                 self.assertTrue(origin.get("source_ref"), skill_dir)
 
+    def test_catalog_current(self):
+        text = README.read_text()
+        _, rest = text.split(gen_catalog.START_MARKER, 1)
+        current, _ = rest.split(gen_catalog.END_MARKER, 1)
+        expected = gen_catalog.render_catalog(gen_catalog.collect_skills(SKILLS_DIR))
+        self.assertEqual(current, f"\n\n{expected}\n\n")
+
+
+SHEPHERD = SKILLS_DIR / "shepherd"
+
+
