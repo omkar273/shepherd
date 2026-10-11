@@ -90,3 +90,9 @@ class NudgeTests(Base):
     def test_missing_state_silent(self):
         self.assertEqual(self.nudge().stdout, "")
 
+    def test_garbage_state_exit0(self):
+        self.state.write_text("garbage")
+        result = self.nudge()
+        self.assertEqual((result.returncode, result.stdout), (0, ""))
+
+
