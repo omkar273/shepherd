@@ -135,6 +135,24 @@
           "decision": "catalog/decisions/2026-10-12-move-retro.md"
         }
       ]
+    },
+    "design": {
+      "domain": "Design",
+      "cues": [
+        "landing page",
+        "new UI",
+        "redesign",
+        "visual style"
+      ],
+      "skills": [
+        {
+          "name": "frontend-design",
+          "repo": "https://github.com/anthropics/skills",
+          "path": "skills/frontend-design",
+          "license": "Apache-2.0",
+          "decision": "catalog/decisions/2026-10-12-add-frontend-design.md"
+        }
+      ]
     }
   }
 }

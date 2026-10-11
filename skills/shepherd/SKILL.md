@@ -69,6 +69,7 @@ Install it?" Install only on a yes, following `skills.md`.
 |---|---|---|
 | planning | spec, tickets, issue tracker, multi-session effort, triage | `/to-spec`, `/to-tickets`, `/implement`, `/wayfinder`, `/triage` and 5 more |
 | productivity | handoff, teach me, questionnaire, retro, grill me | `/grill-me`, `/handoff`, `/teach`, `/to-questionnaire`, `/wait-what`, `/retro` |
+| design | landing page, new UI, redesign, visual style | `frontend-design` |
 
 ## The ladder
 
