@@ -51,3 +51,12 @@ class NewSkillTests(unittest.TestCase):
         self.assertIn("Real content.", (skill_dir / "SKILL.md").read_text())
         self.assertTrue((skill_dir / "references" / "notes.md").exists())
 
+    def test_seed_from_requires_skill_md(self):
+        seed_dir = Path(self.tmp) / "bad-seed"
+        seed_dir.mkdir()
+        with self.assertRaises(FileNotFoundError):
+            new_skill.new_skill(
+                "bad-skill", "vendored", seed_from=str(seed_dir),
+                skills_dir=self.skills_dir,
+            )
+
