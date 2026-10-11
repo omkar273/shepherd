@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
-"""shepherd's skill catalog: packs of skills pinned to exact commits, fetched on demand."""
+"""shepherd's skill catalog: packs of skills fetched on demand from their GitHub repos."""
 import argparse
-import hashlib
 import io
 import json
 import os
-import re
 import shutil
 import subprocess
 import sys
@@ -18,16 +16,7 @@ from link_skills import RUNTIMES, backup_path
 
 REPO = Path(__file__).resolve().parents[3]
 CATALOG = REPO / "catalog" / "catalog.json"
-FIELDS = ("name", "repo", "path", "ref", "sha256", "license", "decision")
-
-
-def content_hash(folder):
-    folder = Path(folder)
-    files = [p for p in folder.rglob("*") if p.is_file() and ".git" not in p.relative_to(folder).parts]
-    digest = hashlib.sha256()
-    for file in sorted(files, key=lambda p: p.relative_to(folder).as_posix()):
-        digest.update(file.relative_to(folder).as_posix().encode() + b"\0" + file.read_bytes() + b"\0")
-    return digest.hexdigest()
+FIELDS = ("name", "repo", "path", "license", "decision")
 
 
 def load(catalog_path):
@@ -48,8 +37,6 @@ def check(data, repo_root):
             missing = [f for f in FIELDS if not skill.get(f)]
             if missing:
                 errors.append(f"{where}: missing {', '.join(missing)}")
-            if not re.fullmatch(r"[0-9a-f]{40}", skill.get("ref", "")):
-                errors.append(f"{where}: ref must be a 40-character commit sha")
             if name in owner:
                 errors.append(f"{where}: duplicate name, already {owner[name]}")
             owner[name] = f"in pack {pack}"
@@ -78,45 +65,47 @@ def record_packs(home, packs):
     path.write_text(json.dumps(state) + "\n")
 
 
-def fetch(repo, ref, path, dest):
+def list_packs(data, home):
+    installed = installed_packs(home)
+    return {pack: {"domain": spec.get("domain", ""), "skills": [s["name"] for s in spec.get("skills", [])],
+                   "installed": pack in installed}
+            for pack, spec in data.get("packs", {}).items()}
+
+
+def fetch(repo, path, dest):
+    """Copy `path` from the latest default branch of `repo` into `dest`; return the commit fetched."""
     with tempfile.TemporaryDirectory() as work:
         git = lambda *args: subprocess.run(["git", "-C", work, *args], capture_output=True)
         git("init", "-q")
-        if git("fetch", "-q", "--depth", "1", repo, ref).returncode != 0:
-            git("fetch", "-q", repo, "+refs/*:refs/remotes/source/*")
-        archive = git("archive", "--format=tar", ref, path)
+        git("fetch", "-q", "--depth", "1", repo, "HEAD")
+        archive = git("archive", "--format=tar", "FETCH_HEAD", path)
         if archive.returncode != 0:
-            sys.exit(f"catalog: cannot read {path} at {ref} from {repo}")
+            sys.exit(f"catalog: cannot read {path} from {repo}")
         with tarfile.open(fileobj=io.BytesIO(archive.stdout)) as tar:
             tar.extractall(work + "/out", filter="data")
         shutil.move(Path(work, "out", path), dest)
+        return git("rev-parse", "FETCH_HEAD").stdout.decode().strip()
 
 
 def cache_dir(home, skill):
-    return home / ".shepherd" / "catalog" / f"{skill['name']}@{skill['ref'][:7]}"
+    return home / ".shepherd" / "catalog" / skill["name"]
 
 
 def install(pack, home, catalog_path):
     skills = load(catalog_path)["packs"][pack]["skills"]
     staged = []
     for skill in skills:
-        cache = cache_dir(home, skill)
-        if cache.is_dir() and content_hash(cache) == skill["sha256"]:
-            continue
         stage = Path(tempfile.mkdtemp()) / skill["name"]
-        fetch(skill["repo"], skill["ref"], skill["path"], stage)
-        if content_hash(stage) != skill["sha256"]:
-            sys.exit(f"catalog: {skill['name']} does not match its pinned hash; nothing installed")
-        staged.append((stage, cache))
+        commit = fetch(skill["repo"], skill["path"], stage)
+        staged.append((skill, stage, commit))
 
-    report = {"fetched": [], "linked": [], "backed_up": []}
-    for stage, cache in staged:
+    report = {"fetched": {}, "linked": [], "backed_up": []}
+    for skill, stage, commit in staged:
+        cache = cache_dir(home, skill)
         shutil.rmtree(cache, ignore_errors=True)
         cache.parent.mkdir(parents=True, exist_ok=True)
         shutil.move(stage, cache)
-        report["fetched"].append(cache.name)
-    for skill in skills:
-        cache = cache_dir(home, skill)
+        report["fetched"][skill["name"]] = commit
         for runtime, rel in RUNTIMES.items():
             target = home / rel / skill["name"]
             if target.is_symlink() and Path(os.path.realpath(target)) == cache.resolve():
@@ -148,19 +137,12 @@ def uninstall(pack, home, catalog_path):
 
 def prune(home, catalog_path):
     packs = load(catalog_path)["packs"]
-    keep = {cache_dir(home, s).name for p in installed_packs(home) if p in packs for s in packs[p]["skills"]}
+    keep = {s["name"] for p in installed_packs(home) if p in packs for s in packs[p]["skills"]}
     root = home / ".shepherd" / "catalog"
     removed = [d.name for d in sorted(root.iterdir()) if d.name not in keep] if root.is_dir() else []
     for name in removed:
         shutil.rmtree(root / name)
     return removed
-
-
-def list_packs(data, home):
-    installed = installed_packs(home)
-    return {pack: {"domain": spec.get("domain", ""), "skills": [s["name"] for s in spec.get("skills", [])],
-                   "installed": pack in installed}
-            for pack, spec in data.get("packs", {}).items()}
 
 
 def main():
@@ -169,23 +151,18 @@ def main():
     common.add_argument("--catalog", default=str(CATALOG))
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="action", required=True)
-    sub.add_parser("list", parents=[common])
-    sub.add_parser("check", parents=[common])
-    sub.add_parser("prune", parents=[common])
+    for name in ("list", "check", "prune"):
+        sub.add_parser(name, parents=[common])
     for name in ("install", "uninstall"):
         sub.add_parser(name, parents=[common]).add_argument("pack")
-    hash_cmd = sub.add_parser("hash", parents=[common])
-    hash_cmd.add_argument("folder")
     fetch_cmd = sub.add_parser("fetch", parents=[common])
-    for name in ("repo", "ref", "path", "dest"):
+    for name in ("repo", "path", "dest"):
         fetch_cmd.add_argument(name)
     args = parser.parse_args()
     home = Path(args.home).expanduser()
 
-    if args.action == "hash":
-        print(content_hash(args.folder))
-    elif args.action == "fetch":
-        fetch(args.repo, args.ref, args.path, Path(args.dest))
+    if args.action == "fetch":
+        print(fetch(args.repo, args.path, Path(args.dest)))
     elif args.action == "list":
         print(json.dumps(list_packs(load(args.catalog), home), indent=2))
     elif args.action == "install":
