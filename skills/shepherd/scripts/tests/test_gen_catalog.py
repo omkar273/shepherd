@@ -29,3 +29,10 @@ class CollectSkillsTests(unittest.TestCase):
             names = {row["name"] for row in rows}
             self.assertEqual(names, {"alpha", "beta"})
 
+    def test_skips_dirs_without_skill_md(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "not-a-skill").mkdir()
+            rows = gen_catalog.collect_skills(tmp)
+            self.assertEqual(rows, [])
+
+
