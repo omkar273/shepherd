@@ -20,3 +20,8 @@ def run(home, *args):
     return json.loads(out.stdout)
 
 
+def repo_links(runtime_dir):
+    return [p for p in runtime_dir.iterdir()
+            if p.is_symlink() and Path(os.path.realpath(p)).parent == SKILLS_DIR.resolve()]
+
+
