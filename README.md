@@ -58,6 +58,34 @@ ideas that would add code go under "Outside lean".
 
 ## Quick start
 
+### Just shepherd
+
+One skill: no other skills, no `CLAUDE.md` block, no superpowers. In Claude
+Code:
+
+```bash
+claude plugin marketplace add omkar273/shepherd
+claude plugin install shepherd@shepherd
+```
+
+In Codex, Cursor, Gemini CLI, opencode and other agents, use the
+[`skills`](https://github.com/vercel-labs/skills) CLI:
+
+```bash
+npx skills add https://github.com/omkar273/shepherd --skill shepherd -g
+```
+
+Drop `-g` to install it for the current project only. Without the
+[superpowers](https://github.com/obra/superpowers) plugin, `shepherd` does the
+planning, debugging, and verification steps itself instead of handing them
+off.
+
+### The full setup
+
+`shepherd`, the skills it routes to, superpowers, and the "update my skills"
+and "skills status" commands. If you installed the plugin above, uninstall it
+first; the full setup includes `shepherd`.
+
 ```bash
 git clone https://github.com/omkar273/shepherd ~/src-code/shepherd
 ```
@@ -172,6 +200,8 @@ Skills marked `mine` are authored here. Vendored skills record their source in
 - **"skills status"** reports missing, broken, or shadowed links, vendored
   skills behind their source, and days since the last update.
 - Optionally, a session-start nudge reminds you after 7 days.
+- **Just shepherd:** `claude plugin update shepherd@shepherd`, or
+  `npx skills update shepherd`.
 
 ## Roadmap
 
@@ -204,6 +234,11 @@ follows the [code of conduct](CODE_OF_CONDUCT.md). Report vulnerabilities as
 described in [SECURITY.md](SECURITY.md).
 
 ## Uninstall
+
+Just shepherd: `claude plugin uninstall shepherd@shepherd`, or
+`npx skills remove shepherd -g`.
+
+The full setup:
 
 ```bash
 find ~/.claude/skills ~/.agents/skills -maxdepth 1 -lname "$HOME/src-code/shepherd/*" -delete
