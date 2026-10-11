@@ -35,3 +35,7 @@ class RepoTests(unittest.TestCase):
             name = skill_meta.read_skill_frontmatter(skill_dir).get("name")
             self.assertEqual(name, skill_dir.name, skill_dir)
 
+    def test_no_duplicate_names(self):
+        names = [skill_meta.read_skill_frontmatter(p).get("name") for p in skill_dirs()]
+        self.assertEqual(len(names), len(set(names)))
+
