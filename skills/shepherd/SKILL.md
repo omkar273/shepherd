@@ -95,3 +95,11 @@ Code that has not earned its place, when writing and when reviewing:
   behavior changes to existing paths, and bulk-stripping old comments or lint
   backlog in files you only touch.
 
+## Proving code is unused
+
+Grep misses some references. Before calling code unused, also check
+side-effect imports (`import "./x"`), string-keyed registration (routes, DI
+names, event names), config globs and paths (Tailwind `@source`, build
+includes), reflection, and tests. If removing it would break something
+silently, it stays.
+
