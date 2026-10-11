@@ -71,3 +71,15 @@ def build_parser():
     return parser
 
 
+def main():
+    args = build_parser().parse_args()
+    skill_dir = new_skill(
+        args.name, args.origin, args.source_repo, args.source_path,
+        args.source_ref, args.seed_from, args.skills_dir,
+    )
+    print(f"Created {skill_dir}")
+    print("Next: run scripts/gen_catalog.py to refresh README.md")
+
+
+if __name__ == "__main__":
+    main()
