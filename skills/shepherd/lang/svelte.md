@@ -22,3 +22,8 @@ file adds only the lean cut list.
 - Optional props that no caller passes.
 - A formatting helper with one or two callers inside one component. Inline it.
 
+## Boundaries
+
+`load` and form-action inputs, route and search params, form data, `fetch`
+responses. Validate there, on the server side, not in every component.
+
