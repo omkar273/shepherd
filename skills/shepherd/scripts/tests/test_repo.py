@@ -39,3 +39,14 @@ class RepoTests(unittest.TestCase):
         names = [skill_meta.read_skill_frontmatter(p).get("name") for p in skill_dirs()]
         self.assertEqual(len(names), len(set(names)))
 
+    def test_vendored_origin_complete(self):
+        for skill_dir in skill_dirs():
+            if skill_dir.name == "shepherd":
+                continue
+            origin = skill_meta.read_origin(skill_dir)
+            self.assertEqual(origin.get("origin"), "vendored", skill_dir)
+            self.assertTrue(origin.get("source_repo"), skill_dir)
+            if sync_skill.is_remote(origin["source_repo"]):
+                self.assertTrue(origin.get("source_path"), skill_dir)
+                self.assertTrue(origin.get("source_ref"), skill_dir)
+
