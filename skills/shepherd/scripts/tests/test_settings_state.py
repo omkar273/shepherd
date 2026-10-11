@@ -124,6 +124,12 @@ class StatusTests(Base):
         (runtime / "gone").symlink_to(self.home / "nowhere")
         self.assertIn("claude/gone", self.status()["broken"])
 
+    def test_status_reports_packs(self):
+        self.state.write_text(json.dumps({"packs": ["design"]}))
+        report = self.status()
+        self.assertEqual(report["packs_installed"], ["design"])
+        self.assertIn("packs_available", report)
+
     def test_reports_shadowed(self):
         (self.home / ".claude" / "skills" / "graphify").mkdir(parents=True)
         self.assertIn("claude/graphify", self.status()["shadowed"])

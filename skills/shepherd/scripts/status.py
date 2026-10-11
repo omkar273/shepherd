@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import catalog
 import skill_meta
 import sync_skill
 
@@ -64,6 +65,10 @@ def main():
                                        - datetime.date.fromisoformat(state["last_update"])).days
     except (OSError, ValueError, KeyError, TypeError):
         pass
+
+    report["packs_installed"] = catalog.installed_packs(home)
+    report["packs_available"] = [p for p in catalog.load(catalog.CATALOG)["packs"]
+                                 if p not in report["packs_installed"]]
 
     counts = {k: len(v) for k, v in report.items() if isinstance(v, list)}
     report["summary"] = ", ".join(f"{k}: {n}" for k, n in counts.items()) + \
