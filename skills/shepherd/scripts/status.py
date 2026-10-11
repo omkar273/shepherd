@@ -16,3 +16,8 @@ SKILLS_DIR = Path(__file__).resolve().parents[2]
 RUNTIMES = {"claude": Path(".claude/skills"), "agents": Path(".agents/skills")}
 
 
+def remote_head(url):
+    out = subprocess.run(["git", "ls-remote", url, "HEAD"], capture_output=True, text=True, timeout=20)
+    return out.stdout.split()[0] if out.returncode == 0 and out.stdout else ""
+
+
