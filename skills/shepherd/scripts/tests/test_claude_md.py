@@ -33,3 +33,11 @@ class ClaudeMdTests(unittest.TestCase):
         self.assertEqual(text.count(BEGIN), 1)
         self.assertIn(BLOCK, text)
 
+    def test_replaces_existing_block(self):
+        self.path.parent.mkdir(parents=True)
+        self.path.write_text(f"top\n{BEGIN}\nold block\n{END}\nbottom\n")
+        text = self.run_script()
+        self.assertNotIn("old block", text)
+        self.assertEqual(text.count(BEGIN), 1)
+        self.assertIn(BLOCK, text)
+
