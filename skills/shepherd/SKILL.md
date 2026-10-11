@@ -45,3 +45,10 @@ Read a `lang/` file before writing the first line in that language. Never read
 a `lang/` file that doesn't match the change. For a language with no file, use
 the code files and the repo's own docs; don't invent language rules.
 
+## Always on
+
+- Read a web page as text first; screenshot only for a visual check, at scale
+  0.5 or less. Turn PDFs into text with `pdftotext`.
+- View source with Read and search with Grep, not `cat` or `sed`. Don't
+  re-read a file you just edited.
+
