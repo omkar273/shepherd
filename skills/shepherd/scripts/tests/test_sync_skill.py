@@ -15,3 +15,14 @@ class ResolveSourceDirTests(unittest.TestCase):
         self.assertIsNone(src)
         self.assertIsNone(git_root)
 
+    def test_local_path_resolves_with_source_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / "repo"
+            (repo / "skills" / "example").mkdir(parents=True)
+            src, git_root = sync_skill.resolve_source_dir(
+                {"source_repo": str(repo), "source_path": "skills/example"},
+                workdir=tmp,
+            )
+            self.assertEqual(src, repo / "skills" / "example")
+            self.assertIsNone(git_root)
+
