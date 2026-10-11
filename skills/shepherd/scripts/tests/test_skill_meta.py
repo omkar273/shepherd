@@ -71,3 +71,19 @@ class OriginRoundTripTests(unittest.TestCase):
             self.assertEqual(result["source_path"], "")
             self.assertEqual(result["source_ref"], "")
 
+    def test_empty_optional_fields_survive_round_trip(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            skill_dir = Path(tmp) / "example-skill"
+            skill_dir.mkdir()
+            skill_meta.write_origin(skill_dir, {
+                "origin": "mine",
+                "source_repo": "local",
+                "source_path": "",
+                "source_ref": "",
+                "snapshotted_at": "2026-07-11",
+            })
+            result = skill_meta.read_origin(skill_dir)
+            self.assertEqual(result["source_path"], "")
+            self.assertEqual(result["source_ref"], "")
+
+
