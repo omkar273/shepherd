@@ -30,3 +30,8 @@ class NewSkillTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             new_skill.new_skill("Bad Name!", "mine", skills_dir=self.skills_dir)
 
+    def test_rejects_existing_skill(self):
+        new_skill.new_skill("dup-skill", "mine", skills_dir=self.skills_dir)
+        with self.assertRaises(FileExistsError):
+            new_skill.new_skill("dup-skill", "mine", skills_dir=self.skills_dir)
+
