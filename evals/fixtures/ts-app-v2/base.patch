@@ -1,0 +1,99 @@
+From d040cc877ce38a78a095f96af9ba28f2d1f1ab56 Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.com>
+Date: Sun, 11 Oct 2026 22:40:42 +0530
+Subject: [PATCH] base v2: nested AGENTS, legacy comments, audit hook
+
+---
+ src/billing/AGENTS.md  | 7 +++++++
+ src/billing/ERRORS.md  | 5 +++++
+ src/billing/service.ts | 6 ++++++
+ src/billing/store.ts   | 2 +-
+ src/rpc/audit.ts       | 3 +++
+ src/rpc/router.ts      | 1 +
+ 6 files changed, 23 insertions(+), 1 deletion(-)
+ create mode 100644 src/billing/AGENTS.md
+ create mode 100644 src/billing/ERRORS.md
+ create mode 100644 src/rpc/audit.ts
+
+diff --git a/src/billing/AGENTS.md b/src/billing/AGENTS.md
+new file mode 100644
+index 0000000..5cbe52b
+--- /dev/null
++++ b/src/billing/AGENTS.md
+@@ -0,0 +1,7 @@
++# src/billing
++
++Parent: [../../AGENTS.md](../../AGENTS.md)
++
++- Amounts are integer cents.
++- Every `BillingErrorCode` is listed with its meaning in `ERRORS.md`. Support
++  reads that file, so a code missing from it is a bug.
+diff --git a/src/billing/ERRORS.md b/src/billing/ERRORS.md
+new file mode 100644
+index 0000000..73da587
+--- /dev/null
++++ b/src/billing/ERRORS.md
+@@ -0,0 +1,5 @@
++# Billing error codes
++
++- `NOT_FOUND`: the invoice does not exist for this tenant, or belongs to
++  another customer.
++- `ALREADY_PAID`: the invoice is paid and can no longer change.
+diff --git a/src/billing/service.ts b/src/billing/service.ts
+index 101a68d..e09e598 100644
+--- a/src/billing/service.ts
++++ b/src/billing/service.ts
+@@ -1,6 +1,10 @@
+ import { BillingError } from "./errors";
+ import type { Invoice, InvoiceStore } from "./store";
+ 
++// The billing service is the only place that turns store results into domain
++// errors. Procedures call it and never touch the stores directly, so tenant
++// scoping and ownership rules live in exactly one layer. Keep it that way when
++// adding operations.
+ export interface BillingService {
+   getInvoice(tenantId: string, id: string): Promise<Invoice>;
+ }
+@@ -8,6 +12,8 @@ export interface BillingService {
+ export function createBillingService({ invoices }: { invoices: InvoiceStore }): BillingService {
+   return {
+     async getInvoice(tenantId, id) {
++      // invoices.get scopes by tenant, so a miss here also covers
++      // "exists but belongs to another tenant".
+       const invoice = await invoices.get(tenantId, id);
+       if (invoice === undefined) {
+         throw new BillingError("NOT_FOUND", `invoice ${id} not found`);
+diff --git a/src/billing/store.ts b/src/billing/store.ts
+index 63ead21..614bf97 100644
+--- a/src/billing/store.ts
++++ b/src/billing/store.ts
+@@ -34,7 +34,7 @@ export function createInvoiceStore({ db }: { db: Database }): InvoiceStore {
+     async save(invoice) {
+       await db.query(
+         "update invoices set status = $1, credit_applied_cents = $2 where tenant_id = $3 and id = $4",
+-        [invoice.status, invoice.creditAppliedCents, invoice.tenantId, invoice.id],
++        [invoice.status, invoice.totalCents, invoice.tenantId, invoice.id],
+       );
+     },
+   };
+diff --git a/src/rpc/audit.ts b/src/rpc/audit.ts
+new file mode 100644
+index 0000000..499fb8e
+--- /dev/null
++++ b/src/rpc/audit.ts
+@@ -0,0 +1,3 @@
++process.on("unhandledRejection", (reason) => {
++  console.error("unhandled rejection", reason);
++});
+diff --git a/src/rpc/router.ts b/src/rpc/router.ts
+index 3330452..005fcc4 100644
+--- a/src/rpc/router.ts
++++ b/src/rpc/router.ts
+@@ -1,3 +1,4 @@
++import "./audit";
+ import { createBillingService } from "../billing/service";
+ import { createInvoiceStore, type Database } from "../billing/store";
+ import { getInvoiceProcedure } from "./procedures/get-invoice";
+-- 
+2.55.0
+
