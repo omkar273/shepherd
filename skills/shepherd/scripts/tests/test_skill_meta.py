@@ -58,3 +58,16 @@ class OriginRoundTripTests(unittest.TestCase):
                 "snapshotted_at": "2026-07-11",
             })
 
+    def test_write_origin_fills_defaults(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            skill_dir = Path(tmp) / "example-skill"
+            skill_dir.mkdir()
+            skill_meta.write_origin(skill_dir, {
+                "origin": "mine",
+                "snapshotted_at": "2026-07-11",
+            })
+            result = skill_meta.read_origin(skill_dir)
+            self.assertEqual(result["source_repo"], "local")
+            self.assertEqual(result["source_path"], "")
+            self.assertEqual(result["source_ref"], "")
+
