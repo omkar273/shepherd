@@ -76,3 +76,15 @@ class UpdateReadmeTests(unittest.TestCase):
             self.assertIn("alpha", new_text)
             self.assertNotIn("old", new_text)
 
+    def test_raises_without_markers(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            skills_dir = Path(tmp) / "skills"
+            skills_dir.mkdir()
+            readme_path = Path(tmp) / "README.md"
+            readme_path.write_text("# Title\nNo markers here.\n")
+            with self.assertRaises(ValueError):
+                gen_catalog.update_readme(readme_path, skills_dir)
+
+
+if __name__ == "__main__":
+    unittest.main()
