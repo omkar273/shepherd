@@ -1,0 +1,7 @@
+{
+  "name": "app",
+  "private": true,
+  "type": "module",
+  "dependencies": { "zod": "^3.23.8", "svelte": "^5.0.0", "react": "^19.0.0" },
+  "devDependencies": { "typescript": "^5.6.0" }
+}

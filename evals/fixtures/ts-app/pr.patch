@@ -1,0 +1,191 @@
+From 26d88bdf47b71cd8d16739b519d43333e67eafa2 Mon Sep 17 00:00:00 2001
+From: teammate <teammate@example.com>
+Date: Sun, 11 Oct 2026 22:26:39 +0530
+Subject: [PATCH] feat: apply customer credit to invoices
+
+---
+ src/billing/credit.ts              | 77 ++++++++++++++++++++++++++++++
+ src/billing/errors.ts              |  6 ++-
+ src/rpc/procedures/apply-credit.ts | 22 +++++++++
+ web/InvoiceTotal.svelte            | 11 ++++-
+ widgets/CreditBadge.tsx            | 20 ++++++++
+ 5 files changed, 134 insertions(+), 2 deletions(-)
+ create mode 100644 src/billing/credit.ts
+ create mode 100644 src/rpc/procedures/apply-credit.ts
+ create mode 100644 widgets/CreditBadge.tsx
+
+diff --git a/src/billing/credit.ts b/src/billing/credit.ts
+new file mode 100644
+index 0000000..4d62efb
+--- /dev/null
++++ b/src/billing/credit.ts
+@@ -0,0 +1,77 @@
++import { BillingError } from "./errors";
++import type { CustomerStore, Invoice, InvoiceStore } from "./store";
++
++export interface ApplyCreditInput {
++  tenantId: string;
++  customerId: string;
++  invoiceId: string;
++  amountCents: number;
++}
++
++export interface CreditService {
++  applyCredit(input: ApplyCreditInput): Promise<Invoice>;
++}
++
++function notFound(id: string) {
++  return new BillingError("NOT_FOUND", `invoice ${id} not found`);
++}
++
++const isPositive = (n: number) => n > 0;
++
++export function createCreditService({
++  invoices,
++  customers,
++}: {
++  invoices: InvoiceStore;
++  customers: CustomerStore;
++}): CreditService {
++  const getInvoice = async (tenantId: string, id: string) =>
++    await invoices.get(tenantId, id);
++
++  return {
++    async applyCredit(input) {
++      if (typeof input.amountCents !== "number" || !isPositive(input.amountCents)) {
++        throw new Error("amountCents must be a positive number");
++      }
++
++      const invoice = await getInvoice(input.tenantId, input.invoiceId);
++      if (!invoice) {
++        throw notFound(input.invoiceId);
++      }
++      if (invoice.customerId !== input.customerId) {
++        throw notFound(input.invoiceId);
++      }
++      if (invoice.status === "paid") {
++        throw new BillingError("ALREADY_PAID", `invoice ${invoice.id} is paid`);
++      }
++
++      const customer = await customers.get(input.tenantId, input.customerId);
++      const balance = customer?.creditBalanceCents ?? 0;
++      if (input.amountCents > balance) {
++        throw new BillingError("NO_CREDIT", "not enough credit");
++      }
++
++      const remaining = invoice?.totalCents - invoice.creditAppliedCents;
++      if (input.amountCents > remaining) {
++        throw new BillingError("CREDIT_EXCEEDS_TOTAL", "credit exceeds amount due");
++      }
++
++      // apply the credit
++      const updated: Invoice = {
++        ...invoice,
++        creditAppliedCents: invoice.creditAppliedCents + input.amountCents,
++      };
++      try {
++        await invoices.save(updated);
++        await customers.setCreditBalance(
++          input.tenantId,
++          input.customerId,
++          balance - input.amountCents,
++        );
++      } catch (error) {
++        throw error;
++      }
++      return updated;
++    },
++  };
++}
+diff --git a/src/billing/errors.ts b/src/billing/errors.ts
+index 2b9c6f9..f4ac100 100644
+--- a/src/billing/errors.ts
++++ b/src/billing/errors.ts
+@@ -1,4 +1,8 @@
+-export type BillingErrorCode = "NOT_FOUND" | "ALREADY_PAID";
++export type BillingErrorCode =
++  | "NOT_FOUND"
++  | "ALREADY_PAID"
++  | "NO_CREDIT"
++  | "CREDIT_EXCEEDS_TOTAL";
+ 
+ export class BillingError extends Error {
+   readonly code: BillingErrorCode;
+diff --git a/src/rpc/procedures/apply-credit.ts b/src/rpc/procedures/apply-credit.ts
+new file mode 100644
+index 0000000..0bf34b5
+--- /dev/null
++++ b/src/rpc/procedures/apply-credit.ts
+@@ -0,0 +1,22 @@
++import { z } from "zod";
++import type { CreditService } from "../../billing/credit";
++import type { RpcContext } from "../context";
++
++const applyCreditInput = z.object({
++  invoiceId: z.string().uuid(),
++  amountCents: z.number().int().positive(),
++});
++
++export function applyCreditProcedure({ credits }: { credits: CreditService }) {
++  return {
++    input: applyCreditInput,
++    async handler(ctx: RpcContext, input: z.infer<typeof applyCreditInput>) {
++      return credits.applyCredit({
++        tenantId: ctx.tenantId,
++        customerId: ctx.customerId,
++        invoiceId: input.invoiceId,
++        amountCents: input.amountCents,
++      });
++    },
++  };
++}
+diff --git a/web/InvoiceTotal.svelte b/web/InvoiceTotal.svelte
+index 69e0028..9514a06 100644
+--- a/web/InvoiceTotal.svelte
++++ b/web/InvoiceTotal.svelte
+@@ -6,6 +6,15 @@
+   }
+ 
+   let { invoice }: InvoiceTotalProps = $props();
++
++  let due = $state(0);
++  $effect(() => {
++    due = invoice.totalCents - invoice.creditAppliedCents;
++  });
+ </script>
+ 
+-<p>Total: {(invoice.totalCents / 100).toFixed(2)}</p>
++{#if invoice}
++  <p>Total: {(invoice.totalCents / 100).toFixed(2)}</p>
++  <p>Credit: {(invoice.creditAppliedCents / 100).toFixed(2)}</p>
++  <p>Due: {(due / 100).toFixed(2)}</p>
++{/if}
+diff --git a/widgets/CreditBadge.tsx b/widgets/CreditBadge.tsx
+new file mode 100644
+index 0000000..ff2dd9c
+--- /dev/null
++++ b/widgets/CreditBadge.tsx
+@@ -0,0 +1,20 @@
++import { useEffect, useMemo, useState } from "react";
++
++interface CreditBadgeProps {
++  amountCents: number;
++}
++
++export function CreditBadge({ amountCents }: CreditBadgeProps) {
++  const [amount] = useState(amountCents);
++  const [label, setLabel] = useState("");
++  const hasCredit = useMemo(() => amount > 0, [amount]);
++
++  useEffect(() => {
++    setLabel(`$${(amount / 100).toFixed(2)} credit`);
++  }, [amount]);
++
++  if (!hasCredit) {
++    return null;
++  }
++  return <span className="badge">{label}</span>;
++}
+-- 
+2.55.0
+
