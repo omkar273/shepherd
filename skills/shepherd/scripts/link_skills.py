@@ -20,3 +20,12 @@ def points_into_repo(path):
     return Path(os.path.realpath(path)).parent == SKILLS_DIR
 
 
+def backup_path(home, runtime, name):
+    base = home / ".skills-backup" / datetime.date.today().isoformat() / runtime / name
+    candidate, n = base, 1
+    while os.path.lexists(candidate):
+        candidate = base.with_name(f"{name}-{n}")
+        n += 1
+    return candidate
+
+
