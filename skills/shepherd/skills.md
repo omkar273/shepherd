@@ -14,8 +14,9 @@ and for an update give them `npx skills update shepherd` or
 
 ## Setup: "set up my skills"
 
-1. Check `git --version`, `python3 --version`, `jq --version`. If one is
-   missing, report it and stop.
+1. Check `git --version` and `python3 --version`. If one is missing, report it
+   and stop. If `jq --version` fails, say the `git-guardrails-claude-code`
+   hook needs it, and continue.
 2. Run `link_skills.py --dry-run --retire`. Show the user what will be linked,
    backed up (with the backup path), retired, and pruned. Continue on yes.
 3. Run `link_skills.py --retire`.

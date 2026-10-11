@@ -91,7 +91,8 @@ above, uninstall it first; the full setup includes `shepherd`.
 git clone https://github.com/omkar273/shepherd ~/src-code/shepherd
 ```
 
-You need Claude Code, git, Python 3, and jq; setup stops if one is missing.
+You need Claude Code, git, and Python 3; setup stops if one is missing. jq is
+needed only if you turn on the `git-guardrails-claude-code` hook.
 Open Claude Code in that folder and say **"set up my skills"**. Setup:
 
 - shows what it will link and back up, and continues on your yes
