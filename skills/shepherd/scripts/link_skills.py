@@ -29,3 +29,42 @@ def backup_path(home, runtime, name):
     return candidate
 
 
+def plan(home, retire):
+    skills = sorted(p.name for p in SKILLS_DIR.iterdir() if (p / "SKILL.md").exists())
+    retired = set(RETIRED_FILE.read_text().split()) if retire else set()
+    report = {k: [] for k in ("linked", "unchanged", "backed_up", "pruned", "retired", "untouched")}
+    actions = []
+    for runtime, rel in RUNTIMES.items():
+        runtime_dir = home / rel
+        for name in skills:
+            target, source = runtime_dir / name, SKILLS_DIR / name
+            key = f"{runtime}/{name}"
+            if target.is_symlink() and points_into_repo(target) and target.exists():
+                report["unchanged"].append(key)
+                continue
+            if os.path.lexists(target):
+                if target.is_symlink() and points_into_repo(target):
+                    actions.append(("unlink", target, None))
+                else:
+                    report["backed_up"].append(key)
+                    actions.append(("move", target, backup_path(home, runtime, name)))
+            else:
+                report["linked"].append(key)
+            actions.append(("link", target, source))
+        if not runtime_dir.is_dir():
+            continue
+        for entry in sorted(runtime_dir.iterdir()):
+            key = f"{runtime}/{entry.name}"
+            if entry.name in skills:
+                continue
+            if entry.is_symlink() and points_into_repo(entry):
+                report["pruned"].append(key)
+                actions.append(("unlink", entry, None))
+            elif entry.name in retired:
+                report["retired"].append(key)
+                actions.append(("move", entry, backup_path(home, runtime, entry.name)))
+            else:
+                report["untouched"].append(key)
+    return report, actions
+
+
