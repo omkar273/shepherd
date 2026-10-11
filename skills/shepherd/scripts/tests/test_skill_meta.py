@@ -100,3 +100,17 @@ class ParseFrontmatterTests(unittest.TestCase):
         result = skill_meta.parse_frontmatter(text)
         self.assertEqual(result["description"], "Explore before building.")
 
+    def test_joins_folded_block_scalar(self):
+        text = (
+            "name: pricing-setup\n"
+            "description: >\n"
+            "  Set up pricing by reading a pricing page.\n"
+            "  Use this whenever the user wants to model pricing.\n"
+        )
+        result = skill_meta.parse_frontmatter(text)
+        self.assertEqual(
+            result["description"],
+            "Set up pricing by reading a pricing page. "
+            "Use this whenever the user wants to model pricing.",
+        )
+
