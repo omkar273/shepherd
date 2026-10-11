@@ -41,3 +41,15 @@ class ClaudeMdTests(unittest.TestCase):
         self.assertEqual(text.count(BEGIN), 1)
         self.assertIn(BLOCK, text)
 
+    def test_bytes_outside_block_unchanged(self):
+        before, after = "top line\n\n", "\nbottom line\nno newline at end"
+        self.path.parent.mkdir(parents=True)
+        self.path.write_text(f"{before}{BEGIN}\nold\n{END}{after}")
+        text = self.run_script()
+        self.assertTrue(text.startswith(before))
+        self.assertTrue(text.endswith(after))
+        self.assertEqual(self.run_script(), text)
+
+
+if __name__ == "__main__":
+    unittest.main()
