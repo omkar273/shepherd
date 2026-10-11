@@ -73,7 +73,8 @@ the code files and the repo's own docs; don't invent language rules.
 
 ## Learning
 
-When the user corrects your work, record it from inside the repo:
+When the user corrects your work, record it from inside the repo before you
+reply:
 `python3 <shepherd>/hooks/capture.py signal --kind <kind> --rule "<shepherd rule>" --evidence "<file:line> <one-line paraphrase>"`
 
 - `reject`: they reject or edit a finding before it is posted, or say a

@@ -88,6 +88,21 @@ class TurnTests(Base):
                    "last_assistant_message": "done", "stop_hook_active": False})
         self.assertEqual(self.lines("turns.jsonl")[0]["text"], "done")
 
+    def test_correction_prompt_gets_a_reminder(self):
+        for prompt in ["Finding 6 is wrong: in this repo the interface is needed because of plugins",
+                       "Put that nil check back, the worker passes nil", "Undo that cut"]:
+            with self.subTest(prompt=prompt):
+                out = self.turn({"session_id": "s", "cwd": "/", "hook_event_name": "UserPromptSubmit",
+                                 "prompt": prompt}).stdout
+                self.assertIn("capture.py signal", out)
+
+    def test_other_turns_print_nothing(self):
+        prompt = self.turn({"session_id": "s", "cwd": "/", "hook_event_name": "UserPromptSubmit",
+                            "prompt": "Review the branch feat/x"})
+        reply = self.turn({"session_id": "s", "cwd": "/", "hook_event_name": "Stop",
+                           "last_assistant_message": "Finding 2 is wrong to keep; undo it"})
+        self.assertEqual((prompt.stdout, reply.stdout), ("", ""))
+
     def test_garbage_exits_0(self):
         for payload in ["not json", "", "[]", "null", '{"hook_event_name": "Stop"}']:
             with self.subTest(payload=payload):
