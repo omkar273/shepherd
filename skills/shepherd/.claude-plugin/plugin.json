@@ -1,6 +1,6 @@
 {
   "name": "shepherd",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Makes your coding agent write the smallest change that works, and stops it from deleting the checks that matter.",
   "author": {
     "name": "Omkar Sonawane",

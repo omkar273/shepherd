@@ -205,13 +205,16 @@ and names the commit reviewed. The procedure is in
 Long sessions cost more and answer worse. Setup offers three hooks, each shown
 as a diff and installed only on your yes; each one does nothing if it fails:
 
-- a one-line warning when a session passes 200k tokens, and again at 400k;
+- a one-line warning when a session passes 40% of the model's context window,
+  and again at 60%;
 - Bash output over 200 lines trimmed to its first and last 60, with the full
   output saved under `~/.claude/shepherd/logs/` (add `# full` to a command to
   skip it);
 - `cat` of a text file over 300 lines denied, in favor of a ranged read.
 
-It also offers `autoCompactWindow: 300000` and a status line with context %.
+It also offers auto-compaction at 70% of the window
+(`CLAUDE_AUTOCOMPACT_PCT_OVERRIDE`) and a status line with context %, which
+tells the warning the window size (it assumes 200k without one).
 Say **"prune skills for this repo"** to see which skills and plugins a repo
 never used in 30 days and turn them down in its `.claude/settings.local.json`.
 

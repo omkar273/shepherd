@@ -37,9 +37,13 @@ and for an update give them `npx skills update shepherd` or
    - `--event UserPromptSubmit --command 'python3 "$HOME/.claude/skills/shepherd/scripts/context_hooks.py" warn'`
    - `--event PostToolUse --matcher Bash --command 'python3 "$HOME/.claude/skills/shepherd/scripts/context_hooks.py" trim'`
    - `--event PreToolUse --matcher Bash --command 'python3 "$HOME/.claude/skills/shepherd/scripts/context_hooks.py" guard'`
-8. Auto-compact: run `settings.py merge --json '{"autoCompactWindow": 300000}'`,
-   show the diff, and on yes run it again with `--write`.
-9. Status line: ask whether they want context % in the status line. On yes,
+8. Auto-compact: run `settings.py merge --json '{"env": {"CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "70"}}'`,
+   show the diff, and on yes run it again with `--write`. If
+   `~/.claude/settings.json` still has `autoCompactWindow: 300000` from an
+   earlier setup, show it and remove it on yes.
+9. Status line: ask whether they want context % in the status line, and say
+   the context warning learns the model's window size from it (without it,
+   the warning assumes 200k). On yes,
    run `settings.py merge --json '{"statusLine": {"type": "command", "command": "python3 \"$HOME/.claude/skills/shepherd/scripts/context_hooks.py\" statusline"}}'`,
    show the diff, and on yes run it again with `--write`.
 10. Run `state.py stamp --repo <repo>`.

@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """Claude Code hooks that keep a session's context small.
 
-warn: UserPromptSubmit. One line when the session passes 200k, then 400k.
+warn: UserPromptSubmit. One line when the session passes 40% of its context
+      window, then 60%. The window size comes from the status line, else 200k.
 trim: PostToolUse on Bash. Output over 200 lines goes to a log; Claude sees
       its first and last 60 lines. A command containing "# full" is exempt.
 guard: PreToolUse on Bash. Denies a plain `cat FILE` or `sed -n '1,$p' FILE`
        of a text file over 300 lines.
-statusline: the statusLine command. Prints "<model> | ctx <N>%".
+statusline: the statusLine command. Prints "<model> | ctx <N>%" and records
+            the window size for warn.
 
 Each reads the hook's JSON on stdin. On any error it prints nothing and exits
 0, so a broken hook never blocks or changes a session."""
@@ -20,7 +22,8 @@ import sys
 import time
 from pathlib import Path
 
-THRESHOLDS = (200_000, 400_000)
+THRESHOLDS = (40, 60)
+DEFAULT_WINDOW = 200_000
 MAX_LINES = 200
 KEEP_LINES = 60
 MAX_FILE_LINES = 300
@@ -69,15 +72,19 @@ def context_tokens(transcript):
 
 def warn(data, home):
     tokens = context_tokens(Path(data["transcript_path"]))
-    crossed = max([t for t in THRESHOLDS if tokens >= t], default=0)
+    logs = session_dir(home, data)
+    window = logs / "window"
+    size = int(window.read_text()) if window.exists() else DEFAULT_WINDOW
+    percent = 100 * tokens // size
+    crossed = max([t for t in THRESHOLDS if percent >= t], default=0)
     if not crossed:
         return None
-    state = session_dir(home, data) / "warned"
+    state = logs / "warned"
     if state.exists() and int(state.read_text()) >= crossed:
         return None
     state.write_text(str(crossed))
-    line = (f"Context is at {tokens // 1000}k. If this is a new task, start a fresh session; "
-            "otherwise `/compact` at the next task boundary.")
+    line = (f"Context is {percent}% full ({tokens // 1000}k of {size // 1000}k). If this is a "
+            "new task, start a fresh session; otherwise `/compact` at the next task boundary.")
     return {"systemMessage": line,
             "hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": line}}
 
@@ -149,7 +156,13 @@ def guard(data, home):
 
 def statusline(data, home):
     model = data["model"]["display_name"]
-    percent = data["context_window"].get("used_percentage")
+    context = data["context_window"]
+    window = session_dir(home, data) / "window"
+    size = str(context["context_window_size"])
+    # Rewritten only on a change, so warn never reads it half-written.
+    if not window.exists() or window.read_text() != size:
+        window.write_text(size)
+    percent = context.get("used_percentage")
     return model if percent is None else f"{model} | ctx {percent:.0f}%"
 
 

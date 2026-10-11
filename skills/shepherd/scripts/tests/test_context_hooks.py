@@ -10,7 +10,7 @@ from pathlib import Path
 
 SCRIPT = Path(__file__).resolve().parent.parent / "context_hooks.py"
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "hooks"
-WARNING = ("Context is at {}k. If this is a new task, start a fresh session; "
+WARNING = ("Context is {}% full ({}k of {}k). If this is a new task, start a fresh session; "
            "otherwise `/compact` at the next task boundary.")
 
 
@@ -55,26 +55,34 @@ class WarnTests(Base):
         self.write_transcript(tokens)
         return self.hook("warn", self.data)
 
-    def test_warn_silent_below_200k(self):
-        result = self.warn(150_000)
+    def test_warn_silent_below_40_percent(self):
+        result = self.warn(70_000)
         self.assertEqual((result.returncode, result.stdout), (0, ""))
 
-    def test_warn_once_past_200k(self):
-        output = json.loads(self.warn(250_000).stdout)
-        line = WARNING.format(250)
+    def test_warn_once_past_40_percent(self):
+        output = json.loads(self.warn(100_000).stdout)
+        line = WARNING.format(50, 100, 200)
         self.assertEqual(output["systemMessage"], line)
         self.assertEqual(output["hookSpecificOutput"],
                          {"hookEventName": "UserPromptSubmit", "additionalContext": line})
-        self.assertEqual(self.warn(260_000).stdout, "")
+        self.assertEqual(self.warn(110_000).stdout, "")
 
-    def test_warn_again_past_400k(self):
-        self.warn(250_000)
-        output = json.loads(self.warn(410_000).stdout)
-        self.assertEqual(output["systemMessage"], WARNING.format(410))
-        self.assertEqual(self.warn(420_000).stdout, "")
+    def test_warn_again_past_60_percent(self):
+        self.warn(100_000)
+        output = json.loads(self.warn(130_000).stdout)
+        self.assertEqual(output["systemMessage"], WARNING.format(65, 130, 200))
+        self.assertEqual(self.warn(140_000).stdout, "")
+
+    def test_warn_uses_window_from_statusline(self):
+        data = {"session_id": self.data["session_id"], "model": {"display_name": "Opus"},
+                "context_window": {"context_window_size": 1_000_000, "used_percentage": 30}}
+        self.hook("statusline", data)
+        self.assertEqual(self.warn(300_000).stdout, "")
+        output = json.loads(self.warn(450_000).stdout)
+        self.assertEqual(output["systemMessage"], WARNING.format(45, 450, 1000))
 
     def test_warn_ignores_sidechain(self):
-        self.write_transcript(150_000, sidechain_tokens=300_000)
+        self.write_transcript(70_000, sidechain_tokens=300_000)
         result = self.hook("warn", self.data)
         self.assertEqual((result.returncode, result.stdout), (0, ""))
 
@@ -84,7 +92,7 @@ class WarnTests(Base):
 
     def test_bad_session_id_noop(self):
         self.data["session_id"] = "../x"
-        result = self.warn(250_000)
+        result = self.warn(100_000)
         self.assertEqual((result.returncode, result.stdout), (0, ""))
         self.assertFalse((self.home / ".claude").exists())
 
@@ -215,7 +223,8 @@ class GuardTests(Base):
 
 class StatuslineTests(Base):
     def statusline(self, percent):
-        data = {"model": {"display_name": "Opus"}, "context_window": {"used_percentage": percent}}
+        data = {"session_id": "s1", "model": {"display_name": "Opus"},
+                "context_window": {"context_window_size": 200_000, "used_percentage": percent}}
         return self.hook("statusline", data).stdout
 
     def test_statusline_prints_percent(self):
@@ -223,6 +232,10 @@ class StatuslineTests(Base):
 
     def test_statusline_without_percent(self):
         self.assertEqual(self.statusline(None), "Opus\n")
+
+    def test_statusline_records_window(self):
+        self.statusline(42.6)
+        self.assertEqual((self.logs / "s1" / "window").read_text(), "200000")
 
 
 class FailOpenTests(Base):

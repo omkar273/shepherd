@@ -41,8 +41,9 @@ step. Never compact in the middle of a debugging thread.
 
 Setup can install these; each fails open and never blocks a session.
 
-- **Context warning:** past 200k, and again past 400k, one line suggests a
-  fresh session or `/compact` at the next task boundary. Act on it.
+- **Context warning:** past 40% of the context window, and again past 60%,
+  one line suggests a fresh session or `/compact` at the next task boundary.
+  Act on it.
 - **Trimmed output:** Bash output over 200 lines comes back as its first and
   last 60 lines plus `[N lines trimmed; full log: <path>]`. Grep the log
   rather than re-running the command. Add `# full` to the command only when
