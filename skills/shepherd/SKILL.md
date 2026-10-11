@@ -52,3 +52,14 @@ the code files and the repo's own docs; don't invent language rules.
 - View source with Read and search with Grep, not `cat` or `sed`. Don't
   re-read a file you just edited.
 
+## The ladder
+
+Take the first rung that holds, and name it in one line:
+
+1. Not needed: say so and stop.
+2. Already in the repo: reuse it the way neighbouring code does. Extend the
+   existing service or module rather than adding a parallel one.
+3. The standard library or platform.
+4. A dependency the repo already has.
+5. Minimal new code.
+
