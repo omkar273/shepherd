@@ -75,3 +75,11 @@ class LinkSkillsTests(unittest.TestCase):
         self.assertFalse((self.agents / "review").is_symlink())
         self.assertIn("agents/review", report["untouched"])
 
+    def test_dry_run_changes_nothing(self):
+        (self.claude / "graphify").mkdir(parents=True)
+        before = snapshot(self.home)
+        report = run(self.home, "--dry-run", "--retire")
+        self.assertEqual(snapshot(self.home), before)
+        self.assertEqual(len(report["linked"]), 2 * SKILL_COUNT - 1)
+        self.assertIn("claude/graphify", report["backed_up"])
+
