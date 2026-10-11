@@ -83,3 +83,21 @@ class SyncOneTests(unittest.TestCase):
         origin = skill_meta.read_origin(skill_dir)
         self.assertNotEqual(origin["snapshotted_at"], "2026-01-01")
 
+    def test_explicit_ref_overrides_detection(self):
+        source_repo = Path(self.tmp) / "upstream2"
+        (source_repo / "skills" / "example2").mkdir(parents=True)
+        (source_repo / "skills" / "example2" / "SKILL.md").write_text("content")
+
+        skill_dir = Path(self.tmp) / "skills" / "example2"
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text("content")
+        skill_meta.write_origin(skill_dir, {
+            "origin": "mine", "source_repo": str(source_repo),
+            "source_path": "skills/example2", "snapshotted_at": "2026-01-01",
+        })
+
+        sync_skill.sync_one(skill_dir, new_ref="abc1234")
+        origin = skill_meta.read_origin(skill_dir)
+        self.assertEqual(origin["source_ref"], "abc1234")
+
+
