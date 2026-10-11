@@ -38,3 +38,14 @@ the type system guarantees.
 
 Code that is moved or merged keeps its checks.
 
+## Removing a check
+
+All four must hold, and you write down the invariant ("`repo` can't be nil:
+`NewVoidService` always sets it"):
+
+1. It is not at a trust boundary.
+2. Every caller has been grepped, including tests and string or dynamic
+   references, and each one guarantees the condition; or the type system does.
+3. It is not on the never-cut list.
+4. Output for valid inputs is unchanged.
+
