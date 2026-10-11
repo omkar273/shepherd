@@ -87,3 +87,6 @@ class NudgeTests(Base):
         self.stamp(2)
         self.assertEqual(self.nudge().stdout, "")
 
+    def test_missing_state_silent(self):
+        self.assertEqual(self.nudge().stdout, "")
+
