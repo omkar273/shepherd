@@ -7,37 +7,28 @@ that makes your coding agent write the smallest change that works, and stops it
 from deleting the checks that matter. It's built for Claude Code, and the
 `skills` CLI installs it for other coding agents too.
 
-## Sound familiar?
+## Install
 
-Coding agents are capable and eager, and the eagerness costs you:
+In Claude Code:
 
-- Wrappers, one-implementation interfaces, and helpers with a single caller.
-- Defensive checks that can never fire, and, worse, removal of checks that
-  matter, such as tenant scoping, because "another layer already does it".
-- Code reviews that ask for more code: a shared helper, a new layer, more
-  tests.
-- Wiring gaps: a route that is never registered, an error code with no status.
-- Sessions that grow until the model gets worse at the task.
+```bash
+claude plugin marketplace add omkar273/shepherd
+claude plugin install shepherd@shepherd
+```
 
-## The receipts
+In other agents, use the [`skills`](https://github.com/vercel-labs/skills) CLI.
+It detects which of its supported agents you have installed, such as Codex,
+Cursor, Gemini CLI, and OpenCode, and asks you to pick if it finds none:
 
-Same prompts, fresh agents, scored against an answer key the agents never see.
-Rerun them yourself with [`evals/README.md`](evals/README.md).
+```bash
+npx skills add https://github.com/omkar273/shepherd --skill shepherd -g
+```
 
-| | Without shepherd | With shepherd |
-|---|---|---|
-| Same feature, lines added (Go / TypeScript)\* | 310 / 132 | 125 / 59 |
-| PR review: planted problems caught | 25 of 27 | 27 of 27 |
-| PR review: tenant-scoping check flagged for removal | yes | no |
+Drop `-g` to install it for the current project only. Either way you get one
+skill: no other skills, no `CLAUDE.md` block. For more skills, packs, and the
+update commands, see [the full setup](#the-full-setup).
 
-Without the skill, the agent's review asked the author to delete a tenant check
-because another layer already ran it. That is the mistake `shepherd` exists to
-stop: it cuts code that has not earned its place, and never cuts auth, tenant
-scoping, money invariants, or cleanup.
-
-\* Measured on 2026-10-11 with the same rules under their earlier name, `lean`.
-
-## What you see
+## Use it
 
 There is no command to remember. Ask for a feature, a fix, or a review as
 usual; `shepherd` loads itself, and every change ends with a short report. For
@@ -56,58 +47,55 @@ Reviews come back as a draft you approve before anything is posted, sorted
 into MUST, SHOULD and ASK. Every fix deletes, inlines, moves, or wires code;
 ideas that would add code go under "Outside lean".
 
-## Quick start
+With the [superpowers](https://github.com/obra/superpowers) plugin installed,
+`shepherd` hands planning, debugging, and the final done-check to it. Without
+it, `shepherd` does those steps itself.
 
-### Just shepherd
+## Why
 
-One skill: no other skills, no `CLAUDE.md` block, no superpowers. In Claude
-Code:
+Coding agents are capable and eager, and the eagerness costs you:
 
-```bash
-claude plugin marketplace add omkar273/shepherd
-claude plugin install shepherd@shepherd
-```
+- Wrappers, one-implementation interfaces, and helpers with a single caller.
+- Defensive checks that can never fire, and, worse, removal of checks that
+  matter, such as tenant scoping, because "another layer already does it".
+- Code reviews that ask for more code: a shared helper, a new layer, more
+  tests.
+- Wiring gaps: a route that is never registered, an error code with no status.
+- Sessions that grow until the model gets worse at the task.
 
-For other agents, use the [`skills`](https://github.com/vercel-labs/skills)
-CLI. It detects which of its supported agents you have installed, such as
-Codex, Cursor, Gemini CLI, and OpenCode, and asks you to pick if it finds none:
+`shepherd` cuts code that has not earned its place, and never cuts auth,
+tenant scoping, money invariants, or cleanup. In its evals, the same prompts
+go to fresh agents, scored against an answer key the agents never see:
 
-```bash
-npx skills add https://github.com/omkar273/shepherd --skill shepherd -g
-```
+| | Without shepherd | With shepherd |
+|---|---|---|
+| Same feature, lines added (Go / TypeScript)\* | 310 / 132 | 125 / 59 |
+| PR review: planted problems caught | 25 of 27 | 27 of 27 |
+| PR review: tenant-scoping check flagged for removal | yes | no |
 
-Drop `-g` to install it for the current project only. Without the
-[superpowers](https://github.com/obra/superpowers) plugin, `shepherd` does the
-planning, debugging, and verification steps itself instead of handing them
-off.
+Without the skill, the agent's review asked the author to delete a tenant check
+because another layer already ran it. Rerun the evals yourself with
+[`evals/README.md`](evals/README.md).
 
-### The full setup
-
-`shepherd`, Matt Pocock's engineering skills, superpowers, packs, and the
-"update my skills" and "skills status" commands. If you installed the plugin
-above, uninstall it first; the full setup includes `shepherd`.
-
-```bash
-git clone https://github.com/omkar273/shepherd ~/src-code/shepherd
-```
-
-You need Claude Code, git, and Python 3; setup stops if one is missing. jq is
-needed only if you turn on the `git-guardrails-claude-code` hook.
-Open Claude Code in that folder and say **"set up my skills"**. Setup:
-
-- shows what it will link and back up, and continues on your yes
-- links each skill into `~/.claude/skills` and `~/.agents/skills`
-- moves anything it would replace to `~/.skills-backup/<date>/`, and never
-  deletes your files
-- writes one marked block into `~/.claude/CLAUDE.md`
-- offers to install the [superpowers](https://github.com/obra/superpowers)
-  plugin if it is missing
-- offers the 7-day update reminder, showing the `~/.claude/settings.json`
-  diff first
-
-Running setup again is safe: it skips what's already in place.
+\* Measured on 2026-10-11 with the same rules under their earlier name, `lean`.
 
 ## How it works
+
+The rules, briefly:
+
+- **The ladder:** not needed, then already in the repo, then the standard
+  library, then an existing dependency, then minimal new code.
+- **The cut list:** one-implementation interfaces, pass-through functions,
+  one-caller helpers, flags nobody sets, stubs, comments that restate code,
+  edits nobody asked for.
+- **The never-cut list:** authentication, tenant scoping, money invariants,
+  state guards, rollback and cleanup, even when another layer also checks.
+- **The diff contract:** the requested behavior, correct under failure; its
+  wiring; tests the repo requires; adjacent bug fixes, each named. Nothing
+  else.
+
+`shepherd` is a router: one short file that hands each task to the section
+that owns it.
 
 ```mermaid
 flowchart LR
@@ -125,26 +113,39 @@ The router stays under 5,000 tokens, which is what Claude Code keeps after it
 compacts a session. Everything else loads only when the task needs it, and a
 Go change never loads the TypeScript rules.
 
-The rules, briefly:
+## The full setup
 
-- **The ladder:** not needed, then already in the repo, then the standard
-  library, then an existing dependency, then minimal new code.
-- **The cut list:** one-implementation interfaces, pass-through functions,
-  one-caller helpers, flags nobody sets, stubs, comments that restate code,
-  edits nobody asked for.
-- **The never-cut list:** authentication, tenant scoping, money invariants,
-  state guards, rollback and cleanup, even when another layer also checks.
-- **The diff contract:** the requested behavior, correct under failure; its
-  wiring; tests the repo requires; adjacent bug fixes, each named. Nothing
-  else.
+`shepherd` plus Matt Pocock's engineering skills, the superpowers plugin,
+packs, and the "update my skills" and "skills status" commands. If you
+installed the plugin above, uninstall it first; the full setup includes
+`shepherd`.
 
-## What setup also gives you
+You need Claude Code, git, and Python 3; setup stops if one is missing. jq is
+needed only if you turn on the `git-guardrails-claude-code` hook.
 
-`shepherd` hands planning, debugging, and the final done-check to the
-[superpowers](https://github.com/obra/superpowers) skills. Setup also links
-Matt Pocock's engineering skills, such as `grilling`, `prototype`, `research`,
-and `pr`. His slash-command skills, such as `/grill-me` and `/to-spec`, come
-as [packs](#packs-experimental).
+```bash
+git clone https://github.com/omkar273/shepherd ~/src-code/shepherd
+```
+
+Open Claude Code in that folder and say **"set up my skills"**. Setup:
+
+- shows what it will link and back up, and continues on your yes
+- links each skill into `~/.claude/skills` and `~/.agents/skills`
+- moves anything it would replace to `~/.skills-backup/<date>/`, and never
+  deletes your files
+- writes one marked block into `~/.claude/CLAUDE.md`
+- offers to install the [superpowers](https://github.com/obra/superpowers)
+  plugin if it is missing
+- offers the 7-day update reminder, showing the `~/.claude/settings.json`
+  diff first
+
+Running setup again is safe: it skips what's already in place.
+
+### What's included
+
+Besides `shepherd`, setup links Matt Pocock's engineering skills, such as
+`grilling`, `prototype`, `research`, and `pr`. His slash-command skills, such
+as `/grill-me` and `/to-spec`, come as [packs](#packs-experimental).
 
 Skills marked `mine` are authored here. Vendored skills record their source in
 `.origin.yaml` and are re-synced, never edited by hand.
@@ -179,20 +180,7 @@ Skills marked `mine` are authored here. Vendored skills record their source in
 
 </details>
 
-## Keeping it current
-
-- **"update my skills"** pulls this repo and relinks the skills. If you can
-  push to your clone's remote, it also re-syncs vendored skills from their
-  sources, shows you the diff, and commits and pushes on your yes; otherwise
-  the vendored updates arrive with the pull.
-- **"skills status"** reports missing, broken, or shadowed links, vendored
-  skills behind their source, installed and available packs, and days since
-  the last update.
-- Optionally, a session-start nudge reminds you after 7 days.
-- **Just shepherd:** `claude plugin update shepherd@shepherd`, or
-  `npx skills update shepherd`.
-
-## Packs (experimental)
+### Packs (experimental)
 
 Packs are skills that install only when you need them. The catalog has three:
 
@@ -212,21 +200,19 @@ in [`catalog/decisions/`](catalog/decisions/) that scores it against a rubric
 and names the commit reviewed. The procedure is in
 [`curate.md`](skills/shepherd/curate.md).
 
-## Add value
+## Update
 
-The contributions that help most:
-
-1. **A check `shepherd` cut that mattered**, or one it should have cut: open
-   a bug report with the code shape.
-2. **A language file:** `skills/shepherd/lang/<language>.md` with the same four
-   headings (keep, cut, boundaries, wiring).
-3. **An eval fixture** for a stack the evals don't cover yet; see
-   [Adding a case](evals/README.md#adding-a-case).
-4. **A skill proposal:** use the skill request form.
-
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before you start. Everyone involved
-follows the [code of conduct](CODE_OF_CONDUCT.md). Report vulnerabilities as
-described in [SECURITY.md](SECURITY.md).
+- **Just shepherd:** `claude plugin update shepherd@shepherd`, or
+  `npx skills update shepherd`.
+- **The full setup:**
+  - **"update my skills"** pulls this repo and relinks the skills. If you can
+    push to your clone's remote, it also re-syncs vendored skills from their
+    sources, shows you the diff, and commits and pushes on your yes; otherwise
+    the vendored updates arrive with the pull.
+  - **"skills status"** reports missing, broken, or shadowed links, vendored
+    skills behind their source, installed and available packs, and days since
+    the last update.
+  - Optionally, a session-start nudge reminds you after 7 days.
 
 ## Uninstall
 
@@ -244,6 +230,22 @@ python3 ~/src-code/shepherd/skills/shepherd/scripts/settings.py remove-hook --ev
 Then delete the block between `<!-- skills:begin -->` and
 `<!-- skills:end -->` in `~/.claude/CLAUDE.md`. The pack cache is in
 `~/.shepherd/`, and anything setup replaced is in `~/.skills-backup/`.
+
+## Contributing
+
+The contributions that help most:
+
+1. **A check `shepherd` cut that mattered**, or one it should have cut: open
+   a bug report with the code shape.
+2. **A language file:** `skills/shepherd/lang/<language>.md` with the same four
+   headings (keep, cut, boundaries, wiring).
+3. **An eval fixture** for a stack the evals don't cover yet; see
+   [Adding a case](evals/README.md#adding-a-case).
+4. **A skill proposal:** use the skill request form.
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before you start. Everyone involved
+follows the [code of conduct](CODE_OF_CONDUCT.md). Report vulnerabilities as
+described in [SECURITY.md](SECURITY.md).
 
 ## Credits and license
 
