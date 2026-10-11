@@ -57,3 +57,17 @@ def new_skill(name, origin, source_repo="local", source_path="",
     return skill_dir
 
 
+def build_parser():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("name", help="skill directory name, e.g. my-new-skill")
+    parser.add_argument("--origin", required=True, choices=["mine", "vendored"])
+    parser.add_argument("--source-repo", default="local")
+    parser.add_argument("--source-path", default="")
+    parser.add_argument("--source-ref", default="")
+    parser.add_argument("--seed-from", default=None,
+                         help="existing directory to copy SKILL.md and assets from")
+    parser.add_argument("--skills-dir", default=None,
+                         help="override skills/ location (used by tests)")
+    return parser
+
+
