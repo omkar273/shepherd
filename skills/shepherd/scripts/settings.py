@@ -10,3 +10,7 @@ import sys
 from pathlib import Path
 
 
+def render(data):
+    return json.dumps(data, indent=2) + "\n"
+
+
