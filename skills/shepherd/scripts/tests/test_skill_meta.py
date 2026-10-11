@@ -29,3 +29,11 @@ class ParseKvBlockTests(unittest.TestCase):
             {"origin": "mine", "source_repo": "local"},
         )
 
+    def test_empty_values_round_trip_not_dropped(self):
+        text = "source_path:\nsource_ref: \n"
+        self.assertEqual(
+            skill_meta.parse_kv_block(text),
+            {"source_path": "", "source_ref": ""},
+        )
+
+
