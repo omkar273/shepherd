@@ -60,14 +60,14 @@ the code files and the repo's own docs; don't invent language rules.
 
 ## Packs (experimental)
 
-Domain skills wait in a catalog and install on demand. When the task fits a
-pack below that `catalog.py list` shows as not installed, offer it once per
-session: "This looks like <domain> work; the <pack> pack (<skills>) would
-help. Install it?" On yes, follow the Packs procedure in `skills.md`. Never
-install without a yes.
+When the task fits a pack below that `catalog.py list` shows as not installed,
+offer it once per session: "The <pack> pack (<skills>) would help here.
+Install it?" Install only on a yes, following `skills.md`.
 
 | Pack | Cues | Skills |
 |---|---|---|
+| planning | spec, tickets, issue tracker, multi-session effort, triage | `/to-spec`, `/to-tickets`, `/implement`, `/wayfinder`, `/triage` and 5 more |
+| productivity | handoff, teach me, questionnaire, retro, grill me | `/grill-me`, `/handoff`, `/teach`, `/to-questionnaire`, `/wait-what`, `/retro` |
 
 ## The ladder
 

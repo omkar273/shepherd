@@ -1,3 +1,140 @@
 {
-  "packs": {}
+  "packs": {
+    "planning": {
+      "domain": "Planning with Matt Pocock's issue flow",
+      "cues": [
+        "spec",
+        "tickets",
+        "issue tracker",
+        "large multi-session effort",
+        "triage"
+      ],
+      "skills": [
+        {
+          "name": "ask-matt",
+          "repo": "https://github.com/mattpocock/skills",
+          "path": "skills/engineering/ask-matt",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-move-ask-matt.md"
+        },
+        {
+          "name": "to-spec",
+          "repo": "https://github.com/mattpocock/skills",
+          "path": "skills/engineering/to-spec",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-move-to-spec.md"
+        },
+        {
+          "name": "to-tickets",
+          "repo": "https://github.com/mattpocock/skills",
+          "path": "skills/engineering/to-tickets",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-move-to-tickets.md"
+        },
+        {
+          "name": "implement",
+          "repo": "https://github.com/mattpocock/skills",
+          "path": "skills/engineering/implement",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-move-implement.md"
+        },
+        {
+          "name": "implement-spec",
+          "repo": "https://github.com/mattpocock/skills",
+          "path": "skills/engineering/implement-spec",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-move-implement-spec.md"
+        },
+        {
+          "name": "wayfinder",
+          "repo": "https://github.com/mattpocock/skills",
+          "path": "skills/engineering/wayfinder",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-move-wayfinder.md"
+        },
+        {
+          "name": "triage",
+          "repo": "https://github.com/mattpocock/skills",
+          "path": "skills/engineering/triage",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-move-triage.md"
+        },
+        {
+          "name": "setup-matt-pocock-skills",
+          "repo": "https://github.com/mattpocock/skills",
+          "path": "skills/engineering/setup-matt-pocock-skills",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-move-setup-matt-pocock-skills.md"
+        },
+        {
+          "name": "improve-codebase-architecture",
+          "repo": "https://github.com/mattpocock/skills",
+          "path": "skills/engineering/improve-codebase-architecture",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-move-improve-codebase-architecture.md"
+        },
+        {
+          "name": "grill-with-docs",
+          "repo": "https://github.com/mattpocock/skills",
+          "path": "skills/engineering/grill-with-docs",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-move-grill-with-docs.md"
+        }
+      ]
+    },
+    "productivity": {
+      "domain": "Productivity",
+      "cues": [
+        "handoff",
+        "teach me",
+        "questionnaire",
+        "retro",
+        "grill me"
+      ],
+      "skills": [
+        {
+          "name": "grill-me",
+          "repo": "https://github.com/mattpocock/skills",
+          "path": "skills/productivity/grill-me",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-move-grill-me.md"
+        },
+        {
+          "name": "handoff",
+          "repo": "https://github.com/mattpocock/skills",
+          "path": "skills/productivity/handoff",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-move-handoff.md"
+        },
+        {
+          "name": "teach",
+          "repo": "https://github.com/mattpocock/skills",
+          "path": "skills/productivity/teach",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-move-teach.md"
+        },
+        {
+          "name": "to-questionnaire",
+          "repo": "https://github.com/mattpocock/skills",
+          "path": "skills/productivity/to-questionnaire",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-move-to-questionnaire.md"
+        },
+        {
+          "name": "wait-what",
+          "repo": "https://github.com/mattpocock/skills",
+          "path": "skills/productivity/wait-what",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-move-wait-what.md"
+        },
+        {
+          "name": "retro",
+          "repo": "https://github.com/mattpocock/skills",
+          "path": "skills/engineering/retro",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-move-retro.md"
+        }
+      ]
+    }
+  }
 }
