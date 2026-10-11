@@ -90,3 +90,10 @@ def parse_frontmatter(text):
     return result
 
 
+def read_skill_frontmatter(skill_dir):
+    path = Path(skill_dir) / "SKILL.md"
+    text = path.read_text()
+    parts = text.split("---", 2)
+    if len(parts) < 3:
+        raise ValueError(f"{path} has no frontmatter block")
+    return parse_frontmatter(parts[1])
