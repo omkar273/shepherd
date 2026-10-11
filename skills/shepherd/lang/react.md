@@ -20,3 +20,8 @@
 - Pass-through wrapper components; optional props that no caller passes.
 - `if (!data) return null` when the type guarantees `data`.
 
+## Boundaries
+
+URL and search params, form input, API responses (validate in the data layer,
+not in every component), `localStorage`, `postMessage`.
+
