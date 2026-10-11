@@ -38,3 +38,13 @@ def render_table(rows):
     return "\n".join(lines)
 
 
+def render_catalog(rows):
+    mine = [r for r in rows if r["origin"] == "mine"]
+    vendored = [r for r in rows if r["origin"] != "mine"]
+    parts = [
+        "### Mine", "", render_table(mine) if mine else "_none yet_", "",
+        "### Vendored", "", render_table(vendored) if vendored else "_none yet_",
+    ]
+    return "\n".join(parts)
+
+
