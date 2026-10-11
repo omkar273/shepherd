@@ -103,3 +103,9 @@ names, event names), config globs and paths (Tailwind `@source`, build
 includes), reflection, and tests. If removing it would break something
 silently, it stays.
 
+## Lint first
+
+Whatever the repo's linter enforces, run the linter instead of restating its
+rules. Judgment covers what lint can't see: callers, invariants, reachability,
+scope, and documented conventions that no linter enforces. In review, a broken
+documented convention is a finding; quote the doc.
