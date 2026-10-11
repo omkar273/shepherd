@@ -21,3 +21,7 @@ MATT = {
 OTHERS = {"frontend-design", "ui-ux-pro-max", "graphify"}
 
 
+def skill_dirs():
+    return [p for p in sorted(SKILLS_DIR.iterdir()) if (p / "SKILL.md").exists()]
+
+
