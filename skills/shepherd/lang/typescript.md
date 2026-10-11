@@ -47,3 +47,12 @@ encodes a rule below, the linter is the authority.
 - Failures are thrown or returned as a tagged result, never as a `T | string`
   message.
 
+## Errors and async
+
+- One boundary layer maps domain errors to transport errors. Handlers and
+  internal functions don't wrap calls in try/catch. `catch (e) { throw e }` is
+  always cut.
+- `await` inside `try`, not promise chains. Fire-and-forget is one statement:
+  `task().catch(log)`.
+- Wait on the event, promise, or signal, never on a timer.
+
