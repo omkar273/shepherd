@@ -60,7 +60,8 @@ the code files and the repo's own docs; don't invent language rules.
 
 ## Packs (experimental)
 
-When the task fits a pack below that `catalog.py list` shows as not installed,
+Only from a full clone (`<shepherd>/../../catalog/catalog.json` exists): when
+the task fits a pack below that `catalog.py list` shows as not installed,
 offer it once per session: "The <pack> pack (<skills>) would help here.
 Install it?" Install only on a yes, following `skills.md`.
 
