@@ -33,3 +33,17 @@ encodes a rule below, the linter is the authority.
 - A type written out by hand that can be derived (`z.infer`, `Pick`,
   `ReturnType`).
 
+## Boundaries: parse once, then trust
+
+- Internal functions take the parsed type: no `unknown` or `any` parameters,
+  no `typeof` re-checks, no `Record<string, unknown>`.
+- Nothing downstream re-checks what the boundary schema guarantees. After
+  `z.number().int().positive()`, a later `typeof x !== "number" || x <= 0` is
+  noise.
+- No `?.` or `??` on a value already narrowed. After `if (!x) throw ...`,
+  `x?.y` is noise.
+- `(await r.json()) as T` becomes a schema parse. No chained casts
+  (`as A as B`) and no widen-then-assert.
+- Failures are thrown or returned as a tagged result, never as a `T | string`
+  message.
+
