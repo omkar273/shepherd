@@ -182,13 +182,17 @@ Skills marked `mine` are authored here. Vendored skills record their source in
 
 ### Packs (experimental)
 
-Packs are skills that install only when you need them. The catalog has three:
+Packs are skills that install only when you need them. The catalog has four:
 
 - **planning:** Matt Pocock's issue flow: `/to-spec`, `/to-tickets`,
   `/implement`, `/wayfinder`, `/triage`, and 5 more.
 - **productivity:** `/grill-me`, `/handoff`, `/teach`, `/to-questionnaire`,
   `/wait-what`, and `/retro`.
 - **design:** Anthropic's `frontend-design`, for landing pages and new UI.
+- **reverse-engineering:** [REA](https://github.com/morluto/rea)'s
+  `reverse-engineer-anything`, for shipped binaries, APKs, Electron apps, and
+  firmware. The skill drives REA's MCP server and CLI, which you set up
+  separately (`npx rea-agents setup`).
 
 When a task fits a pack you don't have, `shepherd` offers it once per session
 and never installs without your yes. You can also say **"what packs are

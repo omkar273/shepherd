@@ -153,6 +153,26 @@
           "decision": "catalog/decisions/2026-10-12-add-frontend-design.md"
         }
       ]
+    },
+    "reverse-engineering": {
+      "domain": "Reverse engineering shipped apps and binaries",
+      "cues": [
+        "reverse engineer",
+        "decompile",
+        "shipped binary",
+        "APK",
+        "Electron app internals",
+        "firmware"
+      ],
+      "skills": [
+        {
+          "name": "reverse-engineer-anything",
+          "repo": "https://github.com/morluto/rea",
+          "path": ".agents/skills/reverse-engineer-anything",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-add-reverse-engineer-anything.md"
+        }
+      ]
     }
   }
 }
