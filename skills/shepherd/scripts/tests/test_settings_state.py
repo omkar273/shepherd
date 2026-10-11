@@ -112,3 +112,9 @@ class StatusTests(Base):
         self.assertIn("claude/shepherd", report["missing"])
         self.assertIn("summary", report)
 
+    def test_reports_broken_link(self):
+        runtime = self.home / ".claude" / "skills"
+        runtime.mkdir()
+        (runtime / "gone").symlink_to(self.home / "nowhere")
+        self.assertIn("claude/gone", self.status()["broken"])
+
