@@ -19,3 +19,13 @@ def make_skill(skills_dir, name, origin, description, source_repo="local"):
     })
 
 
+class CollectSkillsTests(unittest.TestCase):
+    def test_collects_frontmatter_and_origin(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            make_skill(tmp, "alpha", "mine", "Does alpha things.")
+            make_skill(tmp, "beta", "vendored", "Does beta things.",
+                       source_repo="https://example.com/beta")
+            rows = gen_catalog.collect_skills(tmp)
+            names = {row["name"] for row in rows}
+            self.assertEqual(names, {"alpha", "beta"})
+
