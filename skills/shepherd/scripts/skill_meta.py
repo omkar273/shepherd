@@ -30,3 +30,8 @@ def parse_kv_block(text):
     return result
 
 
+def format_kv_block(data):
+    """Format a dict into 'key: value' lines, in insertion order."""
+    return "\n".join(f"{key}: {value}" for key, value in data.items()) + "\n"
+
+
