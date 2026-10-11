@@ -1,0 +1,23 @@
+{
+  "name": "shepherd",
+  "description": "Cut the bloat. Keep the checks.",
+  "owner": {
+    "name": "Omkar Sonawane",
+    "url": "https://github.com/omkar273"
+  },
+  "plugins": [
+    {
+      "name": "shepherd",
+      "source": "./skills/shepherd",
+      "description": "Makes your coding agent write the smallest change that works, and stops it from deleting the checks that matter.",
+      "author": {
+        "name": "Omkar Sonawane",
+        "url": "https://github.com/omkar273"
+      },
+      "homepage": "https://github.com/omkar273/shepherd",
+      "repository": "https://github.com/omkar273/shepherd",
+      "license": "MIT",
+      "keywords": ["code-review", "refactoring", "skill"]
+    }
+  ]
+}
