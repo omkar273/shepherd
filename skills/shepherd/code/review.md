@@ -34,3 +34,19 @@ For a teammate's pull request or branch.
 4. Scope: hunks unrelated to the PR's intent, including old comments or lint
    backlog stripped from files the PR only touches.
 
+## Finding contract
+
+Each finding is: `file:line`, what it is, evidence, fix.
+
+- Evidence is concrete: the callers grepped, the invariant, where the
+  duplicate lives, the repo rule it breaks.
+- The fix deletes, inlines, moves, or wires code.
+- A concern whose fix adds new code (a shared helper, a feature, hardening,
+  tests beyond what the repo requires) is not a lean finding. Give it one line
+  under `Outside lean`, or drop it. Correctness and security bugs you happen
+  to notice go there too, with a pointer to `/code-review` or
+  `/security-review` for depth.
+- A `shortcut:` or TODO comment that names its limit is the author's decision,
+  not a finding.
+- Issues the repo's linter catches: say "lint will flag these" once.
+
