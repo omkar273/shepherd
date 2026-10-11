@@ -30,3 +30,11 @@ def collect_skills(skills_dir):
     return rows
 
 
+def render_table(rows):
+    lines = ["| Skill | Description | Source |", "| --- | --- | --- |"]
+    for row in rows:
+        description = row["description"].replace("\n", " ").replace("|", "\\|")
+        lines.append(f"| `{row['name']}` | {description} | {row['source_repo']} |")
+    return "\n".join(lines)
+
+
