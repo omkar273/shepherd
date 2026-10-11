@@ -19,3 +19,12 @@ def run(script, home, *args, check=True):
     )
 
 
+class Base(unittest.TestCase):
+    def setUp(self):
+        self.home = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.home, ignore_errors=True)
+        (self.home / ".claude").mkdir()
+        self.settings = self.home / ".claude" / "settings.json"
+        self.state = self.home / ".claude" / "shepherd.json"
+
+
