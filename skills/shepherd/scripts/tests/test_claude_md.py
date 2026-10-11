@@ -11,3 +11,17 @@ BEGIN = "<!-- skills:begin -->"
 END = "<!-- skills:end -->"
 
 
+class ClaudeMdTests(unittest.TestCase):
+    def setUp(self):
+        self.home = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.home, ignore_errors=True)
+        self.path = self.home / ".claude" / "CLAUDE.md"
+
+    def run_script(self):
+        subprocess.run([sys.executable, str(SCRIPT), "--home", str(self.home)], check=True)
+        return self.path.read_text()
+
+    def test_creates_file(self):
+        text = self.run_script()
+        self.assertEqual(text, f"{BEGIN}\n{BLOCK}{END}\n")
+
