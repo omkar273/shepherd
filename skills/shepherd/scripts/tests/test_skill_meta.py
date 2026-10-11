@@ -114,3 +114,8 @@ class ParseFrontmatterTests(unittest.TestCase):
             "Use this whenever the user wants to model pricing.",
         )
 
+    def test_joins_literal_block_scalar_with_newlines(self):
+        text = "name: example\ndescription: |\n  Line one.\n  Line two.\n"
+        result = skill_meta.parse_frontmatter(text)
+        self.assertEqual(result["description"], "Line one.\nLine two.")
+
