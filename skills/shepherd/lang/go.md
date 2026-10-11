@@ -41,3 +41,9 @@ implementation and no fake.
   other services call it too) and delete the other. If the handler copy exists
   only to produce a 400, map the service's validation error to 400 instead.
 
+## Boundaries
+
+Request bind and decode, env and config parsed once at startup, JSON or
+`[]byte` from the DB, external client responses, queue, workflow, and activity
+payloads, webhooks.
+
