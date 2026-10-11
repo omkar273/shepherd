@@ -16,3 +16,20 @@ encodes a rule below, the linter is the authority.
 - `?.` and `??` on values whose type really is optional.
 - `AbortSignal.timeout`, `AbortSignal.any`, `try`/`finally` cleanup.
 
+## Shape: cut
+
+- Pass-through functions: `const get = async (id) => await store.get(id)`.
+  Call `store.get` directly.
+- A one-expression helper with one or two callers that names no domain
+  concept. Write the expression inline.
+- Error factories (`function notFound(id) { return new XError(...) }`),
+  throw-only `assertX` helpers, catch-only helpers, error-message helpers
+  (`String(error)` already does it). The same `new XError(...)` at two throw
+  sites is fine; don't propose a shared helper for it.
+- A type alias or function that only renames a library's type. Use the
+  library's name.
+- A static-only class, or module-level mutable state, where a factory with
+  closure state is the repo's pattern.
+- A type written out by hand that can be derived (`z.infer`, `Pick`,
+  `ReturnType`).
+
