@@ -26,3 +26,18 @@ class ResolveSourceDirTests(unittest.TestCase):
             self.assertEqual(src, repo / "skills" / "example")
             self.assertIsNone(git_root)
 
+    def test_remote_url_triggers_clone(self):
+        calls = []
+
+        def fake_clone(url, dest):
+            calls.append((url, dest))
+            Path(dest).mkdir(parents=True)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            src, git_root = sync_skill.resolve_source_dir(
+                {"source_repo": "https://example.com/repo.git", "source_path": ""},
+                workdir=tmp, clone=fake_clone,
+            )
+            self.assertEqual(len(calls), 1)
+            self.assertEqual(src, git_root)
+
