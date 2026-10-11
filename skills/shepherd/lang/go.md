@@ -47,3 +47,12 @@ Request bind and decode, env and config parsed once at startup, JSON or
 `[]byte` from the DB, external client responses, queue, workflow, and activity
 payloads, webhooks.
 
+## Wiring
+
+- Every place the repo constructs services: the DI container (fx, wire, or a
+  hand-written `main.go`) and any worker, job, or workflow registration that
+  builds its own copy.
+- Routes, and the error-to-HTTP-status mapping for every new error value.
+- Generated code (ent, sqlc, mocks, swagger, SDKs): run the repo's generate
+  target; never hand-edit the output.
+- `//go:build` tags.
