@@ -86,3 +86,18 @@ def sync_one(skill_dir, new_ref=None, workdir_root=None, clone=clone_shallow,
         return True
 
 
+def sync_all(skills_dir, new_ref=None, clone=clone_shallow, get_head=git_short_head):
+    targets = [p for p in sorted(Path(skills_dir).iterdir()) if (p / "SKILL.md").exists()]
+    with tempfile.TemporaryDirectory() as cache_root:
+        clones = {}
+
+        def cached_clone(url, dest):
+            if url not in clones:
+                clones[url] = Path(cache_root) / str(len(clones))
+                clone(url, clones[url])
+            Path(dest).symlink_to(clones[url], target_is_directory=True)
+
+        for skill_dir in targets:
+            sync_one(skill_dir, new_ref=new_ref, clone=cached_clone, get_head=get_head)
+
+
