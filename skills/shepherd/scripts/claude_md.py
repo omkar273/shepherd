@@ -11,3 +11,15 @@ BEGIN = "<!-- skills:begin -->"
 END = "<!-- skills:end -->"
 
 
+def render(existing, block):
+    section = f"{BEGIN}\n{block}{END}"
+    if existing is None:
+        return f"{section}\n"
+    if BEGIN in existing and END in existing:
+        before, rest = existing.split(BEGIN, 1)
+        _, after = rest.split(END, 1)
+        return f"{before}{section}{after}"
+    separator = "" if existing.endswith("\n") else "\n"
+    return f"{existing}{separator}\n{section}\n"
+
+
