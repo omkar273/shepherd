@@ -1,13 +1,13 @@
 # shepherd
 
-One skill that keeps your coding agent lean, routes every task to the right
-playbook, and manages the rest of your skills.
+**Cut the bloat. Keep the checks.**
 
 `shepherd` is an [Agent Skill](https://docs.claude.com/en/docs/claude-code/skills)
-for Claude Code. Agents that read `~/.agents/skills` can use it too. It is not
-affiliated with `shepherd-agents/shepherd`.
+that makes your coding agent write the smallest change that works, and stops it
+from deleting the checks that matter. It runs in Claude Code and in any agent
+that reads `~/.agents/skills`.
 
-## Why
+## Sound familiar?
 
 Coding agents are capable and eager, and the eagerness costs you:
 
@@ -19,24 +19,42 @@ Coding agents are capable and eager, and the eagerness costs you:
 - Wiring gaps: a route that is never registered, an error code with no status.
 - Sessions that grow until the model gets worse at the task.
 
-`shepherd` gives the agent one entry point with a small set of rules that
-subtract before they add, and hands each task to the section or skill that
-owns it.
+## The receipts
 
-## What changes
+Same prompts, fresh agents, scored against an answer key the agents never see.
+Rerun them yourself with [`evals/README.md`](evals/README.md).
 
-Measured on the synthetic repos in [`evals/`](evals/README.md): the same
-prompts, fresh agents, scored against an answer key the agents never see. The
-rules shown here are the ones `shepherd` carries, measured on 2026-10-11 under
-their earlier name, `lean`.
-
-| | Without the rules | With them |
+| | Without shepherd | With shepherd |
 |---|---|---|
+| Same feature, lines added (Go / TypeScript)\* | 310 / 132 | 125 / 59 |
 | PR review: planted problems caught | 25 of 27 | 27 of 27 |
-| PR review: essential checks wrongly flagged for removal | 1 | 0 |
-| Same feature, lines added (Go / TypeScript) | 310 / 132 | 125 / 59 |
+| PR review: tenant-scoping check flagged for removal | yes | no |
 
-Rerun them yourself; the guide is in [`evals/README.md`](evals/README.md).
+Without the skill, the agent's review asked the author to delete a tenant check
+because another layer already ran it. That is the mistake `shepherd` exists to
+stop: it cuts code that has not earned its place, and never cuts auth, tenant
+scoping, money invariants, or cleanup.
+
+\* Measured on 2026-10-11 with the same rules under their earlier name, `lean`.
+
+## What you see
+
+There is no command to remember. Ask for a feature, a fix, or a review as
+usual; `shepherd` loads itself, and every change ends with a short report. For
+example:
+
+```text
+Rung: already in the repo - reused scopeToTenant from store/query.go
+Changed: internal/invoice/service.go - Void, one method
+Lean: -41 lines cut in self-check
+Fixed alongside: none
+Follow-ups: none
+Not checked: worker retry path, no test covers it
+```
+
+Reviews come back as a draft you approve before anything is posted, sorted
+into MUST, SHOULD and ASK. Every fix deletes, inlines, moves, or wires code;
+ideas that would add code go under "Outside lean".
 
 ## Quick start
 
@@ -86,15 +104,20 @@ The rules, briefly:
 - **The diff contract:** the requested behavior, correct under failure; its
   wiring; tests the repo requires; adjacent bug fixes, each named. Nothing
   else.
-- **Reviews:** every fix deletes, inlines, moves, or wires code. Ideas that
-  add code go under "Outside lean".
 
-## What's inside
+## What setup also gives you
+
+`shepherd` hands planning, debugging, and the final done-check to the
+[superpowers](https://github.com/obra/superpowers) skills, and setup links the
+other skills it routes to: Matt Pocock's engineering skills, `frontend-design`,
+`ui-ux-pro-max`, and `graphify`. Several are slash commands you run yourself,
+such as `/grill-me` and `/to-spec`.
 
 Skills marked `mine` are authored here. Vendored skills record their source in
-`.origin.yaml` and are re-synced, never edited by hand. Several of Matt
-Pocock's skills are slash commands you run yourself, such as `/grill-me` and
-`/to-spec`.
+`.origin.yaml` and are re-synced, never edited by hand.
+
+<details>
+<summary>Every skill in this repo</summary>
 
 <!-- CATALOG:START -->
 
@@ -139,6 +162,8 @@ Pocock's skills are slash commands you run yourself, such as `/grill-me` and
 | `writing-for-agents` | Writing documents for agents. Use when creating or editing skills, or modifying AGENTS.md or CLAUDE.md. | https://github.com/mattpocock/skills |
 
 <!-- CATALOG:END -->
+
+</details>
 
 ## Keeping it current
 
@@ -198,4 +223,4 @@ Anything setup replaced is in `~/.skills-backup/`.
   projects; see [NOTICE](NOTICE).
 
 Released under the [MIT License](LICENSE). Vendored skills keep their own
-licenses.
+licenses. Not affiliated with `shepherd-agents/shepherd`.

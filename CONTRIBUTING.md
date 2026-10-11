@@ -1,7 +1,8 @@
 # Contributing
 
-Thanks for helping. This repo is one skill to rely on, `shepherd`, plus the
-skills it routes to. Small, focused changes are the easiest to accept.
+Thanks for helping. This repo is `shepherd`, a skill that keeps coding agents'
+changes small without cutting the checks that matter, plus the skills it routes
+to. Small, focused changes are the easiest to accept.
 
 ## How the repo is laid out
 
