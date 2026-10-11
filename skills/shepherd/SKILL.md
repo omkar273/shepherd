@@ -35,7 +35,7 @@ already exists. Subtract before you add.
 | `.svelte`, `.svelte.ts` | + `lang/typescript.md`, `lang/svelte.md` |
 | `.tsx`, `.jsx`, React imports | + `lang/typescript.md`, `lang/react.md` |
 | Any other language | the code files only |
-| Planning a multi-file or unclear change | the superpowers `brainstorming` skill, then `writing-plans`; Matt's `to-spec` when the repo uses his issue flow |
+| Planning a multi-file or unclear change | the superpowers `brainstorming` skill, then `writing-plans`; when the repo uses Matt's issue flow, suggest the user run `/to-spec` (user-invoked only) |
 | A bug or a failing test | the superpowers `systematic-debugging` skill |
 | About to say a change is done | the superpowers `verification-before-completion` skill |
 | "Set up", "update", "add" or "status" for skills | `skills.md` |
