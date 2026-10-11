@@ -96,3 +96,10 @@ class NudgeTests(Base):
         self.assertEqual((result.returncode, result.stdout), (0, ""))
 
 
+class StateTests(Base):
+    def test_stamp_writes_today(self):
+        run("state.py", self.home, "stamp", "--repo", "/some/repo")
+        data = json.loads(self.state.read_text())
+        self.assertEqual(data, {"repo": "/some/repo", "last_update": datetime.date.today().isoformat()})
+
+
