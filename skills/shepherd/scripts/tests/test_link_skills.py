@@ -52,3 +52,12 @@ class LinkSkillsTests(unittest.TestCase):
         self.assertIn("claude/graphify", report["backed_up"])
         self.assertTrue(any(p.name == "old.txt" for p in self.backups()))
 
+    def test_foreign_link_backed_up(self):
+        elsewhere = self.home / "elsewhere"
+        elsewhere.mkdir()
+        self.agents.mkdir(parents=True)
+        (self.agents / "shepherd").symlink_to(elsewhere)
+        report = run(self.home)
+        self.assertIn("agents/shepherd", report["backed_up"])
+        self.assertEqual(Path(os.path.realpath(self.agents / "shepherd")), (SKILLS_DIR / "shepherd").resolve())
+
