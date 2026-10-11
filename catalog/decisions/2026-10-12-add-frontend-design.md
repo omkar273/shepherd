@@ -1,4 +1,4 @@
-# remove: frontend-design (design)
+# add: frontend-design (design)
 
 - **Date:** 2026-10-12
 - **Source:** https://github.com/anthropics/skills at `skills/frontend-design`
@@ -26,4 +26,4 @@
 
 ## Verdict
 
-remove, because on the trial it only tied the model alone and added an external font request; it was dropped from core on 2026-10-12 and stays out of the catalog until a trial shows a gain.
+add, by the owner's decision against the trial bar: it tied the model alone (9 vs 9) rather than beating it, but scored 11/12 with the best accessibility and a clean safety review. Re-trial on a harder design task; remove it if it still shows no gain.

@@ -40,6 +40,8 @@ Score each criterion 0, 1, or 2, and write down the evidence behind each score.
 - **Move** an existing core skill into a pack: behavior doesn't change, so
   score Need, Overlap, Quality, Cost and Safety; Trial is "n/a".
 - **Reject** a candidate that fails: record it so it isn't researched again.
+- The repo owner may add a skill below the bar. The verdict says so, gives the
+  reason, and names the re-trial that would remove it.
 
 ## Record
 
