@@ -90,3 +90,13 @@ class LinkSkillsTests(unittest.TestCase):
             self.assertEqual(report[key], [], key)
         self.assertEqual(len(report["unchanged"]), 2 * SKILL_COUNT)
 
+    def test_chained_link_backup_stays_valid(self):
+        (self.claude / "lean").mkdir(parents=True)
+        (self.claude / "lean" / "SKILL.md").write_text("old lean")
+        self.agents.mkdir(parents=True)
+        (self.agents / "lean").symlink_to(self.claude / "lean")
+        run(self.home, "--retire")
+        backup = next(p for p in (self.home / ".skills-backup").rglob("lean")
+                      if p.parent.name == "agents")
+        self.assertEqual((backup / "SKILL.md").read_text(), "old lean")
+
