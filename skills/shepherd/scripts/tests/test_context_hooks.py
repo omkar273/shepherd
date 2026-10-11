@@ -213,9 +213,21 @@ class GuardTests(Base):
         self.assertEqual(self.guard("cat big.py  # look"), self.DENY)
 
 
+class StatuslineTests(Base):
+    def statusline(self, percent):
+        data = {"model": {"display_name": "Opus"}, "context_window": {"used_percentage": percent}}
+        return self.hook("statusline", data).stdout
+
+    def test_statusline_prints_percent(self):
+        self.assertEqual(self.statusline(42.6), "Opus | ctx 43%\n")
+
+    def test_statusline_without_percent(self):
+        self.assertEqual(self.statusline(None), "Opus\n")
+
+
 class FailOpenTests(Base):
     def test_malformed_stdin_exit0(self):
-        for name in ("warn", "trim", "guard"):
+        for name in ("warn", "trim", "guard", "statusline"):
             for stdin in ("", "not json", "[1, 2]", '{"session_id": 5}'):
                 result = self.hook(name, stdin)
                 self.assertEqual((result.returncode, result.stdout, result.stderr), (0, "", ""),

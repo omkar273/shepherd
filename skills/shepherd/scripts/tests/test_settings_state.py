@@ -63,6 +63,41 @@ class SettingsTests(Base):
         self.assertIn("SessionStart", result.stdout)
         self.assertFalse(self.settings.exists())
 
+    def merge(self, patch, *extra):
+        return run("settings.py", self.home, "merge", "--json", json.dumps(patch), *extra)
+
+    def test_merge_top_level(self):
+        self.settings.write_text(json.dumps({"model": "opus"}))
+        self.merge({"autoCompactWindow": 300000}, "--write")
+        self.assertEqual(json.loads(self.settings.read_text()),
+                         {"model": "opus", "autoCompactWindow": 300000})
+
+    def test_merge_nested_keeps_siblings(self):
+        self.settings.write_text(json.dumps({"skillOverrides": {"a": "off"}}))
+        self.merge({"skillOverrides": {"b": "name-only"}}, "--write")
+        self.assertEqual(json.loads(self.settings.read_text())["skillOverrides"],
+                         {"a": "off", "b": "name-only"})
+
+    def test_merge_to_file(self):
+        local = self.home / "repo" / ".claude" / "settings.local.json"
+        self.merge({"enabledPlugins": {"x@y": False}}, "--file", str(local), "--write")
+        self.assertEqual(json.loads(local.read_text()), {"enabledPlugins": {"x@y": False}})
+        self.assertFalse(self.settings.exists())
+
+    def test_merge_idempotent(self):
+        self.merge({"autoCompactWindow": 300000}, "--write")
+        self.assertEqual(self.merge({"autoCompactWindow": 300000}, "--write").stdout, "")
+
+    def test_merge_no_write_without_flag(self):
+        self.assertIn('+  "autoCompactWindow": 300000', self.merge({"autoCompactWindow": 300000}).stdout)
+        self.assertFalse(self.settings.exists())
+
+    def test_add_hook_to_file(self):
+        local = self.home / "settings.local.json"
+        self.add("--file", str(local), "--write")
+        self.assertIn("SessionStart", json.loads(local.read_text())["hooks"])
+        self.assertFalse(self.settings.exists())
+
     def test_remove_hook(self):
         self.add("--write")
         run("settings.py", self.home, "remove-hook", "--event", "SessionStart",

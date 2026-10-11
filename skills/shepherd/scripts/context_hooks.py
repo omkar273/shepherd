@@ -6,6 +6,7 @@ trim: PostToolUse on Bash. Output over 200 lines goes to a log; Claude sees
       its first and last 60 lines. A command containing "# full" is exempt.
 guard: PreToolUse on Bash. Denies a plain `cat FILE` or `sed -n '1,$p' FILE`
        of a text file over 300 lines.
+statusline: the statusLine command. Prints "<model> | ctx <N>%".
 
 Each reads the hook's JSON on stdin. On any error it prints nothing and exits
 0, so a broken hook never blocks or changes a session."""
@@ -146,7 +147,13 @@ def guard(data, home):
                                    "permissionDecisionReason": DUMP_REASON}}
 
 
-HOOKS = {"warn": warn, "trim": trim, "guard": guard}
+def statusline(data, home):
+    model = data["model"]["display_name"]
+    percent = data["context_window"].get("used_percentage")
+    return model if percent is None else f"{model} | ctx {percent:.0f}%"
+
+
+HOOKS = {"warn": warn, "trim": trim, "guard": guard, "statusline": statusline}
 
 
 def main():
@@ -159,7 +166,7 @@ def main():
     except Exception:
         return
     if result is not None:
-        print(json.dumps(result))
+        print(result if isinstance(result, str) else json.dumps(result))
 
 
 if __name__ == "__main__":
