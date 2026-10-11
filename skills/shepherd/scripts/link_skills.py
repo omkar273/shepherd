@@ -87,3 +87,17 @@ def apply(actions):
             path.symlink_to(other, target_is_directory=True)
 
 
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--home", default=str(Path.home()))
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--retire", action="store_true")
+    args = parser.parse_args()
+    report, actions = plan(Path(args.home).expanduser(), args.retire)
+    if not args.dry_run:
+        apply(actions)
+    print(json.dumps(report, indent=2))
+
+
+if __name__ == "__main__":
+    main()
