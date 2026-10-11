@@ -1,4 +1,5 @@
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -98,6 +99,92 @@ class ListTests(TempDir):
         self.assertTrue(listing["design"]["installed"])
         self.assertFalse(listing["content"]["installed"])
         self.assertEqual(listing["content"]["skills"], ["b"])
+
+
+class InstallTests(TempDir):
+    def setUp(self):
+        super().setUp()
+        src = self.tmp / "src"
+        (src / "skills" / "demo").mkdir(parents=True)
+        (src / "skills" / "demo" / "SKILL.md").write_text("---\nname: demo\n---\nhello\n")
+        g = ["git", "-C", str(src), "-c", "user.name=t", "-c", "user.email=t@example.com"]
+        subprocess.run(["git", "init", "-q", str(src)], check=True)
+        subprocess.run(g + ["add", "-A"], check=True)
+        subprocess.run(g + ["commit", "-q", "-m", "demo"], check=True)
+        self.ref = subprocess.run(g + ["rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
+        self.src = src
+        self.home = self.tmp / "home"
+        self.home.mkdir()
+        self.claude = self.home / ".claude" / "skills"
+        self.agents = self.home / ".agents" / "skills"
+
+    def write_catalog(self, **overrides):
+        skill = {"name": "demo", "repo": self.src.as_uri(), "path": "skills/demo", "ref": self.ref,
+                 "sha256": catalog.content_hash(self.src / "skills" / "demo"), "license": "MIT",
+                 "decision": "catalog/decisions/x.md"}
+        skill.update(overrides)
+        path = self.tmp / "catalog.json"
+        path.write_text(json.dumps({"packs": {"demo-pack": {"domain": "D", "cues": ["c"], "skills": [skill]}}}))
+        return path
+
+    def run_cli(self, *args, cat=None):
+        return subprocess.run([sys.executable, str(SCRIPT), *args, "--home", str(self.home),
+                               "--catalog", str(cat or self.write_catalog())], capture_output=True, text=True)
+
+    def packs(self):
+        return json.loads((self.home / ".claude" / "shepherd.json").read_text()).get("packs")
+
+    def test_install_links_and_verifies(self):
+        self.assertEqual(self.run_cli("install", "demo-pack").returncode, 0)
+        for runtime in (self.claude, self.agents):
+            self.assertTrue((runtime / "demo").is_symlink())
+            self.assertIn("hello", (runtime / "demo" / "SKILL.md").read_text())
+        self.assertEqual(self.packs(), ["demo-pack"])
+
+    def test_install_tampered_refused(self):
+        result = self.run_cli("install", "demo-pack", cat=self.write_catalog(sha256="0" * 64))
+        self.assertEqual(result.returncode, 1)
+        self.assertFalse(os.path.lexists(self.claude / "demo"))
+        self.assertFalse(os.path.lexists(self.agents / "demo"))
+
+    def test_install_missing_ref_links_nothing(self):
+        result = self.run_cli("install", "demo-pack", cat=self.write_catalog(ref="c" * 40))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("cannot read", result.stderr)
+        self.assertFalse(os.path.lexists(self.claude / "demo"))
+
+    def test_install_backs_up_real_folder(self):
+        (self.claude / "demo").mkdir(parents=True)
+        (self.claude / "demo" / "old.txt").write_text("old")
+        self.assertEqual(self.run_cli("install", "demo-pack").returncode, 0)
+        self.assertTrue((self.claude / "demo").is_symlink())
+        self.assertTrue(any(p.name == "old.txt" for p in (self.home / ".skills-backup").rglob("*")))
+
+    def test_uninstall_removes_only_catalog_links(self):
+        cat = self.write_catalog()
+        self.run_cli("install", "demo-pack", cat=cat)
+        (self.claude / "other").mkdir()
+        self.assertEqual(self.run_cli("uninstall", "demo-pack", cat=cat).returncode, 0)
+        self.assertFalse(os.path.lexists(self.claude / "demo"))
+        self.assertFalse(os.path.lexists(self.agents / "demo"))
+        self.assertTrue((self.claude / "other").is_dir())
+        self.assertEqual(self.packs(), [])
+
+    def test_prune_keeps_referenced_cache(self):
+        cat = self.write_catalog()
+        self.run_cli("install", "demo-pack", cat=cat)
+        stale = self.home / ".shepherd" / "catalog" / "old@1234567"
+        stale.mkdir(parents=True)
+        self.assertEqual(self.run_cli("prune", cat=cat).returncode, 0)
+        self.assertFalse(stale.exists())
+        self.assertTrue((self.home / ".shepherd" / "catalog" / f"demo@{self.ref[:7]}").is_dir())
+
+    def test_fetch_cli_copies_path_at_ref(self):
+        dest = self.tmp / "fetched"
+        result = subprocess.run([sys.executable, str(SCRIPT), "fetch", self.src.as_uri(), self.ref,
+                                 "skills/demo", str(dest)], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(catalog.content_hash(dest), catalog.content_hash(self.src / "skills" / "demo"))
 
 
 if __name__ == "__main__":

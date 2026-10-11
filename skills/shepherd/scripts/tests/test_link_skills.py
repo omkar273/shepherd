@@ -100,6 +100,15 @@ class LinkSkillsTests(unittest.TestCase):
                       if p.parent.name == "agents")
         self.assertEqual((backup / "SKILL.md").read_text(), "old lean")
 
+    def test_catalog_links_survive_relink(self):
+        cache = self.home / ".shepherd" / "catalog" / "demo@abc1234"
+        cache.mkdir(parents=True)
+        self.claude.mkdir(parents=True)
+        (self.claude / "demo").symlink_to(cache)
+        report = run(self.home, "--retire")
+        self.assertTrue((self.claude / "demo").is_symlink())
+        self.assertIn("claude/demo", report["untouched"])
+
     def test_retired_real_dir_backed_up(self):
         (self.claude / "pricing-setup").mkdir(parents=True)
         report = run(self.home)
