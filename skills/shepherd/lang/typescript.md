@@ -56,3 +56,12 @@ encodes a rule below, the linter is the authority.
   `task().catch(log)`.
 - Wait on the event, promise, or signal, never on a timer.
 
+## Wiring
+
+- A new procedure or route is registered in the router. New error codes are
+  added to the error-to-status mapping.
+- The consumer's `package.json` workspace dependency, and the package's
+  `exports` or barrel `index.ts` when the repo routes imports through it.
+- Env vars declared wherever the repo declares them (example env file, turbo
+  `globalEnv`, config schema).
+- Generated files (route trees, API clients) regenerated, never hand-edited.
