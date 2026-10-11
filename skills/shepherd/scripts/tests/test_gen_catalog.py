@@ -36,3 +36,12 @@ class CollectSkillsTests(unittest.TestCase):
             self.assertEqual(rows, [])
 
 
+class RenderTableTests(unittest.TestCase):
+    def test_escapes_pipe_and_newline_in_description(self):
+        rows = [{"name": "alpha", "description": "line one\nline two | three",
+                 "source_repo": "local"}]
+        table = gen_catalog.render_table(rows)
+        self.assertNotIn("\n\n", table)
+        self.assertIn("line one line two \\| three", table)
+
+
