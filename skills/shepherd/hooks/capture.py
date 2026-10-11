@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Capture corrections to shepherd and print the lessons that apply.
 
-turn     hook: append the prompt or the reply in stdin JSON to inbox/turns.jsonl
+turn     hook: append the prompt or the reply in stdin JSON to inbox/turns.jsonl,
+         and remind the agent to record a prompt that looks like a correction
 signal   record a correction; a clear repo lesson goes to lessons/repos/<slug>.md
 lessons  print the global and repo lessons; pull in the background at most hourly
 sync     pull or push, run detached by the commands above
@@ -26,6 +27,12 @@ REPO_CAP = 40
 PULL_EVERY_SECONDS = 3600
 GIT_TIMEOUT_SECONDS = 5
 LESSON_KINDS = {"reject", "revert", "restore"}
+CORRECTION = re.compile(
+    r"\b(wrong|incorrect|(is|was|are|were) needed|not needed|(put|bring)\b[^.]{0,30}\bback"
+    r"|undo|revert|restore|should(n't| not)? have|(don't|do not) (cut|remove|drop|flag)|keep (it|that|this|the))\b",
+    re.IGNORECASE)
+REMINDER = ("shepherd: if this message corrects your work, record it with "
+            "`capture.py signal` before you reply (SKILL.md, Learning).")
 LINE = re.compile(r"^- (?P<lesson>.+)\. \((?P<date>\d{4}-\d\d-\d\d), seen (?P<n>\d+)x\)$")
 
 _NEVER_CUT = (r"(auth|authn|authz|authentication|authorization|permissions?|ownership|owner checks?"
@@ -93,6 +100,8 @@ def turn(root):
         return
     if not isinstance(text, str) or not text:
         return
+    if event == "UserPromptSubmit" and CORRECTION.search(text):
+        print(REMINDER)  # UserPromptSubmit stdout reaches the model as context
     path = root / "inbox" / "turns.jsonl"
     prune(path, KEEP_DAYS)
     append(path, {"ts": now(), "session_id": data.get("session_id"), "cwd": data.get("cwd"), "event": event,
