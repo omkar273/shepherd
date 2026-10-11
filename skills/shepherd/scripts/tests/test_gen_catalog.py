@@ -45,3 +45,17 @@ class RenderTableTests(unittest.TestCase):
         self.assertIn("line one line two \\| three", table)
 
 
+class RenderCatalogTests(unittest.TestCase):
+    def test_groups_by_origin(self):
+        rows = [
+            {"name": "alpha", "description": "d1", "origin": "mine", "source_repo": "local"},
+            {"name": "beta", "description": "d2", "origin": "vendored", "source_repo": "local"},
+        ]
+        catalog = gen_catalog.render_catalog(rows)
+        self.assertIn("### Mine", catalog)
+        self.assertIn("alpha", catalog)
+        self.assertIn("### Vendored", catalog)
+        self.assertIn("beta", catalog)
+        self.assertLess(catalog.index("alpha"), catalog.index("beta"))
+
+
