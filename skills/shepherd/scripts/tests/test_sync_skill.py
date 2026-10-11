@@ -41,3 +41,11 @@ class ResolveSourceDirTests(unittest.TestCase):
             self.assertEqual(len(calls), 1)
             self.assertEqual(src, git_root)
 
+    def test_missing_local_path_raises(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(FileNotFoundError):
+                sync_skill.resolve_source_dir(
+                    {"source_repo": str(Path(tmp) / "does-not-exist")}, workdir=tmp,
+                )
+
+
