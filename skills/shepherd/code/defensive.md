@@ -63,3 +63,8 @@ Run the repo's checks. A test that newly fails means the check was doing work:
 restore it and report it. Never edit the test to make it pass. If a contract
 now lies (a nullable return type, a doc line), flag it.
 
+## Adding
+
+Add a check only at a boundary, or for a case you can name. Let errors
+propagate to the layer that handles them. Never turn an error into a silent
+default.
