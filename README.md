@@ -137,9 +137,9 @@ The rules, briefly:
 
 `shepherd` hands planning, debugging, and the final done-check to the
 [superpowers](https://github.com/obra/superpowers) skills, and setup links the
-other skills it routes to: Matt Pocock's engineering skills, `frontend-design`,
-`ui-ux-pro-max`, and `graphify`. Several are slash commands you run yourself,
-such as `/grill-me` and `/to-spec`.
+Matt Pocock skills it routes to, such as `grilling`, `prototype`, `research`,
+and `pr`. His slash-command skills, such as `/grill-me` and `/to-spec`, come
+as [packs](#packs-experimental).
 
 Skills marked `mine` are authored here. Vendored skills record their source in
 `.origin.yaml` and are re-synced, never edited by hand.
@@ -187,14 +187,22 @@ Skills marked `mine` are authored here. Vendored skills record their source in
 
 ## Packs (experimental)
 
-Domain skills wait in a catalog, pinned to a commit, and install only when you
-need them. The catalog is empty for now; the first packs are on the roadmap. When a task fits a pack you don't have, `shepherd` offers it once
-per session and never installs without your yes. You can also say **"what
-packs are there"**, **"install the `<pack>` pack"**, or **"remove a pack"**.
+Packs are skills that install only when you need them. The catalog has two:
 
-Every skill that enters or leaves a pack is scored against a rubric, trialled
-against a run without it, and committed with a decision record. The procedure
-is in [`curate.md`](skills/shepherd/curate.md).
+- **planning:** Matt Pocock's issue flow: `/to-spec`, `/to-tickets`,
+  `/implement`, `/wayfinder`, `/triage`, and 5 more.
+- **productivity:** `/grill-me`, `/handoff`, `/teach`, `/to-questionnaire`,
+  `/wait-what`, and `/retro`.
+
+When a task fits a pack you don't have, `shepherd` offers it once per session
+and never installs without your yes. You can also say **"what packs are
+there"**, **"install the planning pack"**, or **"remove a pack"**. Packs come
+with the full setup; a shepherd-only install doesn't offer them.
+
+Packs track each skill's upstream. Every skill that enters or leaves a pack is
+scored against a rubric, trialled against a run without it, and committed with
+a decision record that names the commit reviewed. The procedure is in
+[`curate.md`](skills/shepherd/curate.md).
 
 ## Roadmap
 
@@ -206,8 +214,9 @@ These are in design. Nothing below has shipped yet.
 - **Learning from corrections:** when you reject a finding or undo a cut,
   `shepherd` records a lesson for that repo. Promoting lessons into the core
   rules happens only on request, with an eval run.
-- **The first packs:** content, design, and more, each curated through
-  [`curate.md`](skills/shepherd/curate.md).
+- **More packs:** `frontend-design`, `ui-ux-pro-max`, and `graphify` left the
+  core and wait on curation through [`curate.md`](skills/shepherd/curate.md),
+  as do content skills.
 
 ## Add value
 
@@ -245,8 +254,6 @@ Anything setup replaced is in `~/.skills-backup/`.
   [Matt Pocock](https://github.com/mattpocock/skills), MIT.
 - [superpowers](https://github.com/obra/superpowers) by Jesse Vincent,
   installed as a plugin rather than vendored.
-- `frontend-design`, `ui-ux-pro-max` and `graphify` come from their upstream
-  projects; see [NOTICE](NOTICE).
 
 Released under the [MIT License](LICENSE). Vendored skills keep their own
 licenses. Not affiliated with `shepherd-agents/shepherd`.
