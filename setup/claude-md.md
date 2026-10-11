@@ -13,3 +13,8 @@ use the `shepherd` skill first.
 - Before "done": reread the diff, cut the excess, run the repo's checks.
 - Commits and PR bodies: never a model name, never a `Co-Authored-By:` or
   "Generated with" trailer.
+
+## Compact Instructions
+
+When compacting, keep the goal, decisions, files changed, commands run, the
+current failure, and the next step. Drop tool output that is already acted on.

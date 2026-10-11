@@ -31,9 +31,21 @@ and for an update give them `npx skills update shepherd` or
    - Run `settings.py add-hook --event SessionStart --command 'python3 "$HOME/.claude/skills/shepherd/scripts/nudge.py"'`
      and show the diff it prints.
    - On yes, run it again with `--write`.
-7. Run `state.py stamp --repo <repo>`.
-8. Report `claude --version` and offer `claude update`.
-9. List the links made and say: restart Claude Code to load the new skills.
+7. Context hooks (`context.md` says what each does). For each row, run
+   `settings.py add-hook` with these arguments, show the diff, and on yes run
+   it again with `--write`:
+   - `--event UserPromptSubmit --command 'python3 "$HOME/.claude/skills/shepherd/scripts/context_hooks.py" warn'`
+   - `--event PostToolUse --matcher Bash --command 'python3 "$HOME/.claude/skills/shepherd/scripts/context_hooks.py" trim'`
+   - `--event PreToolUse --matcher Bash --command 'python3 "$HOME/.claude/skills/shepherd/scripts/context_hooks.py" guard'`
+8. Auto-compact: run `settings.py merge --json '{"autoCompactWindow": 300000}'`,
+   show the diff, and on yes run it again with `--write`.
+9. Status line: ask whether they want context % in the status line. On yes,
+   run `settings.py merge --json '{"statusLine": {"type": "command", "command": "python3 \"$HOME/.claude/skills/shepherd/scripts/context_hooks.py\" statusline"}}'`,
+   show the diff, and on yes run it again with `--write`.
+10. Run `state.py stamp --repo <repo>`.
+11. Report `claude --version` and offer `claude update`.
+12. List the links made and say: restart Claude Code to load the new skills.
+    Offer "prune skills" for the repos they work in most.
 
 ## Update: "update my skills"
 
@@ -66,6 +78,22 @@ Summarize:
 - vendored skills that are behind their source
 - uncommitted changes
 - days since the last update
+
+## Prune: "prune skills for this repo"
+
+1. Run `status.py --catalog --repo <the repo>`. It reads that repo's last 30
+   days of transcripts locally and reports names and counts only; never quote
+   transcript text.
+2. Show the `unused_skills` and `unused_plugins`, grouped by `kind`.
+3. Propose, for `<the repo>/.claude/settings.local.json`:
+   - `skillOverrides`: `"name-only"` for unused `user`, `project`, and
+     `builtin` skills (the user can ask for `"off"` instead);
+   - `enabledPlugins`: `false` for each unused plugin that has a `key`.
+   Plugins without a `key` came with the desktop app: report them only.
+   `skillOverrides` does not apply to plugin skills.
+4. Run `settings.py merge --file <the repo>/.claude/settings.local.json
+   --json '<the proposal>'`, show the diff, and on yes run it again with
+   `--write`. Nothing is written without that yes.
 
 ## Packs: "install the <pack> pack", "remove a pack", "what packs are there"
 
