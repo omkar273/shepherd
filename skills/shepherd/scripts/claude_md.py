@@ -23,3 +23,15 @@ def render(existing, block):
     return f"{existing}{separator}\n{section}\n"
 
 
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--home", default=str(Path.home()))
+    args = parser.parse_args()
+    path = Path(args.home).expanduser() / ".claude" / "CLAUDE.md"
+    existing = path.read_text() if path.exists() else None
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(render(existing, BLOCK_FILE.read_text()))
+
+
+if __name__ == "__main__":
+    main()
