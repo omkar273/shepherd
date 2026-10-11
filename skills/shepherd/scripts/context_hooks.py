@@ -2,10 +2,13 @@
 """Claude Code hooks that keep a session's context small.
 
 warn: UserPromptSubmit. One line when the session passes 200k, then 400k.
+trim: PostToolUse on Bash. Output over 200 lines goes to a log; Claude sees
+      its first and last 60 lines. A command containing "# full" is exempt.
 
 Each reads the hook's JSON on stdin. On any error it prints nothing and exits
 0, so a broken hook never blocks or changes a session."""
 import argparse
+import itertools
 import json
 import re
 import shutil
@@ -14,6 +17,8 @@ import time
 from pathlib import Path
 
 THRESHOLDS = (200_000, 400_000)
+MAX_LINES = 200
+KEEP_LINES = 60
 LOG_DAYS = 7
 TRANSCRIPT_TAIL_BYTES = 4 * 1024 * 1024
 SESSION_ID = re.compile(r"[A-Za-z0-9_-]+")
@@ -70,7 +75,37 @@ def warn(data, home):
             "hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": line}}
 
 
-HOOKS = {"warn": warn}
+def trim(data, home):
+    response = data["tool_response"]
+    # persistedOutputPath: Claude Code saved the output itself and shows only a preview.
+    if "# full" in data["tool_input"]["command"] or "persistedOutputPath" in response:
+        return None
+    streams = {name: response.get(name) or "" for name in ("stdout", "stderr")}
+    if all(len(text.splitlines()) <= MAX_LINES for text in streams.values()):
+        return None
+    parts = [streams["stdout"]] if streams["stdout"] else []
+    if streams["stderr"]:
+        parts += ["[stderr]", streams["stderr"]]
+    logs = session_dir(home, data)
+    for n in itertools.count(len(list(logs.glob("*.log"))) + 1):
+        log = logs / f"{n}.log"
+        try:
+            with open(log, "x", encoding="utf-8") as f:
+                f.write("\n".join(parts) + "\n")
+            break
+        except FileExistsError:
+            continue
+    replaced = {}
+    for name, text in streams.items():
+        lines = text.splitlines()
+        if len(lines) > MAX_LINES:
+            marker = f"[{len(lines) - 2 * KEEP_LINES} lines trimmed; full log: {log}]"
+            replaced[name] = "\n".join(lines[:KEEP_LINES] + [marker] + lines[-KEEP_LINES:])
+    return {"hookSpecificOutput": {"hookEventName": "PostToolUse",
+                                   "updatedToolOutput": dict(response, **replaced)}}
+
+
+HOOKS = {"warn": warn, "trim": trim}
 
 
 def main():

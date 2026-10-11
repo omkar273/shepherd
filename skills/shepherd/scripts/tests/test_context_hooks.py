@@ -1,8 +1,10 @@
 import json
+import os
 import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -87,9 +89,76 @@ class WarnTests(Base):
         self.assertFalse((self.home / ".claude").exists())
 
 
+class TrimTests(Base):
+    def setUp(self):
+        super().setUp()
+        self.data = fixture("post_tool_use_bash")
+        self.session_logs = self.logs / self.data["session_id"]
+
+    def trim(self, stdout="", stderr="", command="make test", **response):
+        self.data["tool_input"]["command"] = command
+        self.data["tool_response"].update(stdout=stdout, stderr=stderr, **response)
+        return self.hook("trim", self.data)
+
+    @staticmethod
+    def numbered(count):
+        return [f"line {i}" for i in range(1, count + 1)]
+
+    def test_trim_under_limit_silent(self):
+        result = self.trim("\n".join(self.numbered(150)))
+        self.assertEqual((result.returncode, result.stdout), (0, ""))
+        self.assertFalse(self.logs.exists())
+
+    def test_trim_over_limit(self):
+        lines = self.numbered(1000)
+        output = json.loads(self.trim("\n".join(lines)).stdout)["hookSpecificOutput"]
+        log = self.session_logs / "1.log"
+        self.assertEqual(output["hookEventName"], "PostToolUse")
+        replaced = output["updatedToolOutput"]
+        self.assertEqual(replaced["stdout"].splitlines(),
+                         lines[:60] + [f"[880 lines trimmed; full log: {log}]"] + lines[-60:])
+        expected = dict(self.data["tool_response"], stdout=replaced["stdout"])
+        self.assertEqual(replaced, expected)
+        self.assertEqual(log.read_text().splitlines(), lines)
+
+    def test_trim_stderr(self):
+        lines = self.numbered(300)
+        replaced = json.loads(self.trim("ok", "\n".join(lines)).stdout)[
+            "hookSpecificOutput"]["updatedToolOutput"]
+        self.assertEqual(replaced["stdout"], "ok")
+        self.assertEqual(len(replaced["stderr"].splitlines()), 121)
+        self.assertIn("[180 lines trimmed;", replaced["stderr"])
+        self.assertEqual((self.session_logs / "1.log").read_text().splitlines(),
+                         ["ok", "[stderr]"] + lines)
+
+    def test_trim_full_exempt(self):
+        result = self.trim("\n".join(self.numbered(1000)), command="make test  # full")
+        self.assertEqual((result.returncode, result.stdout), (0, ""))
+
+    def test_trim_skips_persisted_output(self):
+        result = self.trim("\n".join(self.numbered(1000)),
+                           persistedOutputPath="/tmp/out.txt", persistedOutputSize=90000)
+        self.assertEqual((result.returncode, result.stdout), (0, ""))
+
+    def test_trim_second_log_is_2(self):
+        self.trim("\n".join(self.numbered(300)))
+        self.trim("\n".join(self.numbered(300)))
+        self.assertEqual(sorted(p.name for p in self.session_logs.iterdir()), ["1.log", "2.log"])
+
+    def test_trim_prunes_old_session_dirs(self):
+        old, recent = self.logs / "old-session", self.logs / "recent-session"
+        for path, days in ((old, 8), (recent, 1)):
+            path.mkdir(parents=True)
+            stamp = time.time() - days * 86400
+            os.utime(path, (stamp, stamp))
+        self.trim("\n".join(self.numbered(300)))
+        self.assertFalse(old.exists())
+        self.assertTrue(recent.exists())
+
+
 class FailOpenTests(Base):
     def test_malformed_stdin_exit0(self):
-        for name in ("warn",):
+        for name in ("warn", "trim"):
             for stdin in ("", "not json", "[1, 2]", '{"session_id": 5}'):
                 result = self.hook(name, stdin)
                 self.assertEqual((result.returncode, result.stdout, result.stderr), (0, "", ""),
