@@ -25,3 +25,7 @@ def is_remote(source_repo):
     )
 
 
+def clone_shallow(url, dest):
+    subprocess.run(["git", "clone", "--depth", "1", url, str(dest)], check=True)
+
+
