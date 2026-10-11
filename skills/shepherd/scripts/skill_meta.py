@@ -55,3 +55,38 @@ def write_origin(skill_dir, data):
 _KEY_RE = re.compile(r"^([A-Za-z0-9_-]+):(.*)$")
 
 
+def parse_frontmatter(text):
+    """Parse a SKILL.md frontmatter block. Supports plain 'key: value'
+    lines, double-quoted values, and YAML folded ('>') or literal ('|')
+    block scalars for multi-line descriptions."""
+    result = {}
+    lines = text.splitlines()
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        if not line.strip() or line.lstrip().startswith("#"):
+            i += 1
+            continue
+        match = _KEY_RE.match(line)
+        if not match:
+            i += 1
+            continue
+        key, rest = match.group(1), match.group(2).strip()
+        if rest in (">", "|"):
+            i += 1
+            block_lines = []
+            while i < len(lines) and (lines[i].strip() == "" or lines[i][:1] in (" ", "\t")):
+                block_lines.append(lines[i].strip())
+                i += 1
+            if rest == ">":
+                result[key] = " ".join(l for l in block_lines if l)
+            else:
+                result[key] = "\n".join(block_lines).strip()
+            continue
+        if len(rest) >= 2 and rest[0] == rest[-1] == '"':
+            rest = rest[1:-1]
+        result[key] = rest
+        i += 1
+    return result
+
+
