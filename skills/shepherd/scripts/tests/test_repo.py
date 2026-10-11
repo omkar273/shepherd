@@ -25,3 +25,8 @@ def skill_dirs():
     return [p for p in sorted(SKILLS_DIR.iterdir()) if (p / "SKILL.md").exists()]
 
 
+class RepoTests(unittest.TestCase):
+    def test_expected_skills_present(self):
+        names = {p.name for p in skill_dirs()}
+        self.assertEqual(MATT | OTHERS, (MATT | OTHERS) & names)
+
