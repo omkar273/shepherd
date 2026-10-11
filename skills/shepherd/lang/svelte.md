@@ -27,3 +27,8 @@ file adds only the lean cut list.
 `load` and form-action inputs, route and search params, form data, `fetch`
 responses. Validate there, on the server side, not in every component.
 
+## Wiring
+
+Route files (`+page`, `+layout`, `+server`, `+page.server`), the `load` return
+type the page consumes, component library exports, and the repo's
+design-system component over a new one.
