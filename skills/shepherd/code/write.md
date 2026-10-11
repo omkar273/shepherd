@@ -17,3 +17,26 @@
   version. Before using a CLI flag, check `--help`.
 - Fix a bug once, in the shared code, not in one caller.
 
+## 2. The diff contract
+
+The finished diff contains exactly:
+
+1. The requested behavior, correct when things fail. When the change writes
+   more than one row, or moves money or quantities, it is atomic and safe
+   against two concurrent requests: one transaction, or a conditional update
+   (`... where balance >= $1`). Use the mechanism the code already has, or
+   the smallest one inside the existing layer; never a new layer. Correctness
+   is never a follow-up.
+2. The wiring from the reach list.
+3. Tests where the repo's test policy asks for them, or the user asked.
+4. Fixes for genuine bugs (wrong behavior) in code the change touches, each
+   one named under `Fixed alongside:` in the report.
+
+Nothing else goes in. That rules out refactors of existing code, extracting
+helpers from code you only touched, "improvements" to how existing paths
+behave, hardening that neighbouring code doesn't have, doc comments, and
+stripping old comments. If one of those looks worth doing, leave it out and
+list it under `Follow-ups:` in the report.
+
+Add or remove checks per `code/defensive.md`.
+
