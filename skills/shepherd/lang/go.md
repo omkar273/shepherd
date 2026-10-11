@@ -25,3 +25,19 @@ or `mock` types for implementations. A hit means the interface is
 load-bearing. Flag only a new interface outside the convention with one
 implementation and no fake.
 
+## Noise: cut
+
+- `len(s) > 0` before `range s`; a guard before reading a nil map; a nil check
+  before `len(x)`.
+- A nil check on a value whose constructor or repository contract never
+  returns nil alongside a nil error.
+- Re-wrapping or re-marking the same error at every layer; `%w` that adds no
+  context.
+- Logging an error and also returning it. Log once, at the boundary that owns
+  the failure.
+- Mutexes or channels around state no other goroutine touches.
+- The same request validated in the handler and in the service. Keep the copy
+  every entry point passes through (usually the service, since workers and
+  other services call it too) and delete the other. If the handler copy exists
+  only to produce a 400, map the service's validation error to 400 instead.
+
