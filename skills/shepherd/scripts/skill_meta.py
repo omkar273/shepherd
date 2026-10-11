@@ -40,3 +40,18 @@ def read_origin(skill_dir):
     return parse_kv_block(path.read_text())
 
 
+def write_origin(skill_dir, data):
+    path = Path(skill_dir) / ".origin.yaml"
+    ordered = {
+        "origin": data["origin"],
+        "source_repo": data.get("source_repo", "local"),
+        "source_path": data.get("source_path", ""),
+        "source_ref": data.get("source_ref", ""),
+        "snapshotted_at": data["snapshotted_at"],
+    }
+    path.write_text(format_kv_block(ordered))
+
+
+_KEY_RE = re.compile(r"^([A-Za-z0-9_-]+):(.*)$")
+
+
