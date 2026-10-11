@@ -13,3 +13,20 @@ START_MARKER = "<!-- CATALOG:START -->"
 END_MARKER = "<!-- CATALOG:END -->"
 
 
+def collect_skills(skills_dir):
+    skills_dir = Path(skills_dir)
+    rows = []
+    for skill_dir in sorted(skills_dir.iterdir()):
+        if not (skill_dir / "SKILL.md").exists():
+            continue
+        frontmatter = skill_meta.read_skill_frontmatter(skill_dir)
+        origin = skill_meta.read_origin(skill_dir)
+        rows.append({
+            "name": frontmatter.get("name", skill_dir.name),
+            "description": frontmatter.get("description", ""),
+            "origin": origin.get("origin", "vendored"),
+            "source_repo": origin.get("source_repo", "local"),
+        })
+    return rows
+
+
