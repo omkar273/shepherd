@@ -13,3 +13,9 @@ small on purpose: what never lands in context costs nothing later.
 - When the user is about to step away from a large session, suggest a handoff:
   resuming a big session later re-sends all of it.
 
+## Compact at task boundaries
+
+When a sub-task is finished and the session continues, suggest
+`/compact <focus>`, naming the goal, decisions, files changed, and the next
+step. Never compact in the middle of a debugging thread.
+
