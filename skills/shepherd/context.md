@@ -37,3 +37,7 @@ step. Never compact in the middle of a debugging thread.
 - Long test runs and log digging go to a subagent too; only the conclusion
   comes back.
 
+## Check the meter
+
+`/context` shows what fills the window. If skills or MCP tools unused in this
+repo take a large share, tell the user which ones.
