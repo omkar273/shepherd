@@ -25,3 +25,35 @@ TODO: describe what this skill does and how to use it.
 """
 
 
+def new_skill(name, origin, source_repo="local", source_path="",
+              source_ref="", seed_from=None, skills_dir=None):
+    if not NAME_RE.match(name):
+        raise ValueError(
+            f"invalid skill name {name!r}: use lowercase letters, digits, hyphens only"
+        )
+
+    skills_dir = Path(skills_dir) if skills_dir else Path(__file__).resolve().parents[2]
+    skill_dir = skills_dir / name
+    if skill_dir.exists():
+        raise FileExistsError(f"skills/{name} already exists")
+
+    if seed_from:
+        seed_dir = Path(seed_from)
+        if not (seed_dir / "SKILL.md").exists():
+            raise FileNotFoundError(f"{seed_dir} has no SKILL.md to seed from")
+        shutil.copytree(seed_dir, skill_dir, ignore=shutil.ignore_patterns(".git"))
+    else:
+        skill_dir.mkdir(parents=True)
+        title = name.replace("-", " ").title()
+        (skill_dir / "SKILL.md").write_text(STUB_TEMPLATE.format(name=name, title=title))
+
+    skill_meta.write_origin(skill_dir, {
+        "origin": origin,
+        "source_repo": source_repo,
+        "source_path": source_path,
+        "source_ref": source_ref,
+        "snapshotted_at": datetime.date.today().isoformat(),
+    })
+    return skill_dir
+
+
