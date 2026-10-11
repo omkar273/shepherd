@@ -1,6 +1,6 @@
 ---
 name: shepherd
-description: Use for any coding task in any repo - writing, changing, reviewing, planning, debugging, or finishing a change - for setting up, updating, adding, or checking skills, and when a session grows long or messy.
+description: Use when writing, changing, or reviewing code in any repo - implementing a feature or fix, refactoring, reviewing a pull request or branch, debugging, planning a multi-file change, or wrapping up a change before saying it is done - whenever about to add a helper, wrapper, interface, layer, option, defensive check, or test the task did not ask for, and when setting up, updating, adding, or checking skills.
 ---
 
 # Shepherd
