@@ -103,3 +103,12 @@ class StateTests(Base):
         self.assertEqual(data, {"repo": "/some/repo", "last_update": datetime.date.today().isoformat()})
 
 
+class StatusTests(Base):
+    def status(self):
+        return json.loads(run("status.py", self.home).stdout)
+
+    def test_reports_missing(self):
+        report = self.status()
+        self.assertIn("claude/shepherd", report["missing"])
+        self.assertIn("summary", report)
+
