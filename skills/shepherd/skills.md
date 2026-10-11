@@ -27,3 +27,15 @@ Run scripts with `python3 <shepherd>/scripts/<script>`. Every script takes
 8. Report `claude --version` and offer `claude update`.
 9. List the links made and say: restart Claude Code to load the new skills.
 
+## Update: "update my skills"
+
+1. Run `git -C <repo> pull --rebase --autostash -q`.
+2. Run `sync_skill.py --all`, then `git -C <repo> diff --stat -- skills`.
+   Summarize what changed in each skill.
+3. On yes:
+   - commit `chore: sync vendored skills`
+   - run `git -C <repo> push -q`
+
+   On no, run `git -C <repo> checkout -- skills`.
+4. Run `link_skills.py`, `gen_catalog.py`, then `state.py stamp --repo <repo>`.
+
