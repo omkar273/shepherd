@@ -19,3 +19,22 @@ Not boundaries: in-repo calls whose callers you can grep, your own
 constructor's result, data validated earlier on the same path, and anything
 the type system guarantees.
 
+## Never cut, even when another layer already does it
+
+- Authentication, authorization, and ownership checks
+  (`invoice.customerId !== ctx.customerId`).
+- Tenant, environment, and org scoping: in queries, and re-checks in services.
+  A second scoping check is defense in depth, not duplication.
+- Money and quantity invariants (balance covers the amount, amount within what
+  is due), state-machine guards (already paid, already voided), idempotency
+  guards, uniqueness and integrity constraints.
+- Transaction rollback, `defer` and `finally` cleanup, locks, optimistic
+  version checks.
+- Timeouts and retries around network I/O; error translation that callers rely
+  on.
+- Guards that stop a job, deploy, or pipeline from silently succeeding while
+  doing nothing (a missing secret, an empty input set).
+- Any check a comment explains or a test asserts.
+
+Code that is moved or merged keeps its checks.
+
