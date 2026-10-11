@@ -8,6 +8,8 @@
   },
   "homepage": "https://github.com/omkar273/shepherd",
   "repository": "https://github.com/omkar273/shepherd",
+  "documentationUrl": "https://github.com/omkar273/shepherd#readme",
+  "supportUrl": "https://github.com/omkar273/shepherd/issues",
   "license": "MIT",
   "keywords": ["code-review", "refactoring", "skill"],
   "skills": "./"
