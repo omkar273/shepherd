@@ -22,3 +22,10 @@ class ParseKvBlockTests(unittest.TestCase):
             {"source_repo": "https://github.com/example/skills"},
         )
 
+    def test_ignores_blank_lines_and_comments(self):
+        text = "# comment\norigin: mine\n\nsource_repo: local\n"
+        self.assertEqual(
+            skill_meta.parse_kv_block(text),
+            {"origin": "mine", "source_repo": "local"},
+        )
+
