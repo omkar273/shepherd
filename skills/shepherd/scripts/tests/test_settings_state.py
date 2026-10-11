@@ -70,3 +70,16 @@ class SettingsTests(Base):
         self.assertNotIn("SessionStart", json.loads(self.settings.read_text()).get("hooks", {}))
 
 
+class NudgeTests(Base):
+    def nudge(self):
+        return run("nudge.py", self.home)
+
+    def stamp(self, days_ago):
+        day = datetime.date.today() - datetime.timedelta(days=days_ago)
+        self.state.write_text(json.dumps({"repo": "/r", "last_update": day.isoformat()}))
+
+    def test_stale_prints_line(self):
+        self.stamp(9)
+        self.assertEqual(self.nudge().stdout.strip(),
+                         'Skills last updated 9 days ago. Say "update my skills".')
+
