@@ -59,3 +59,20 @@ class RenderCatalogTests(unittest.TestCase):
         self.assertLess(catalog.index("alpha"), catalog.index("beta"))
 
 
+class UpdateReadmeTests(unittest.TestCase):
+    def test_replaces_only_marked_region(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            skills_dir = Path(tmp) / "skills"
+            make_skill(skills_dir, "alpha", "mine", "Does alpha things.")
+
+            readme_path = Path(tmp) / "README.md"
+            readme_path.write_text(
+                "# Title\n\nIntro text.\n\n<!-- CATALOG:START -->\nold\n"
+                "<!-- CATALOG:END -->\n\nFooter.\n"
+            )
+            new_text = gen_catalog.update_readme(readme_path, skills_dir)
+            self.assertIn("Intro text.", new_text)
+            self.assertIn("Footer.", new_text)
+            self.assertIn("alpha", new_text)
+            self.assertNotIn("old", new_text)
+
