@@ -68,3 +68,22 @@ def plan(home, retire):
     return report, actions
 
 
+def apply(actions):
+    moved = {os.path.realpath(path): dest for kind, path, dest in actions
+             if kind == "move" and not path.is_symlink()}
+    for kind, path, other in actions:
+        if kind == "unlink":
+            path.unlink()
+        elif kind == "move":
+            other.parent.mkdir(parents=True, exist_ok=True)
+            target = os.path.realpath(path) if path.is_symlink() else None
+            if target in moved:
+                other.symlink_to(moved[target], target_is_directory=True)
+                path.unlink()
+            else:
+                os.rename(path, other)
+        else:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.symlink_to(other, target_is_directory=True)
+
+
