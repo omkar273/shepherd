@@ -26,3 +26,7 @@ class NewSkillTests(unittest.TestCase):
         self.assertEqual(origin["origin"], "mine")
         self.assertEqual(origin["source_repo"], "local")
 
+    def test_rejects_invalid_name(self):
+        with self.assertRaises(ValueError):
+            new_skill.new_skill("Bad Name!", "mine", skills_dir=self.skills_dir)
+
