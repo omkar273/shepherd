@@ -12,3 +12,11 @@ SKILLS_DIR = Path(__file__).resolve().parents[3]
 SKILL_COUNT = sum(1 for p in SKILLS_DIR.iterdir() if (p / "SKILL.md").exists())
 
 
+def run(home, *args):
+    out = subprocess.run(
+        [sys.executable, str(SCRIPT), "--home", str(home), *args],
+        capture_output=True, text=True, check=True,
+    )
+    return json.loads(out.stdout)
+
+
