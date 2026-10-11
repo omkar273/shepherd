@@ -25,3 +25,7 @@ def repo_links(runtime_dir):
             if p.is_symlink() and Path(os.path.realpath(p)).parent == SKILLS_DIR.resolve()]
 
 
+def snapshot(root):
+    return sorted((str(p.relative_to(root)), p.is_symlink()) for p in Path(root).rglob("*"))
+
+
