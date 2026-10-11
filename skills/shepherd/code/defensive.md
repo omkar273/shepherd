@@ -49,3 +49,11 @@ All four must hold, and you write down the invariant ("`repo` can't be nil:
 3. It is not on the never-cut list.
 4. Output for valid inputs is unchanged.
 
+## Tiers
+
+| Tier | Examples | Write mode | Review |
+|---|---|---|---|
+| HIGH | Empty catch. Catch that only rethrows. Log-and-return when a caller already logs. A nil or undefined guard on a value a type or constructor guarantees. Validation repeated on the same path (keep the copy every entry point passes through). | Cut | SHOULD |
+| MEDIUM | Swallow-and-default (`?? 0`, `return nil` on error) on data that can really be missing. Log-only catch. Catch around I/O with no comment. Exported function whose callers you can't all see. A cast whose fix ripples outward. | Leave it; report it | ASK, as a question |
+| LOW | Everything on the never-cut list | Keep | Say nothing |
+
