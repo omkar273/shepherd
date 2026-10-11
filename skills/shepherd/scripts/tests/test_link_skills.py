@@ -44,3 +44,11 @@ class LinkSkillsTests(unittest.TestCase):
         self.assertEqual(len(repo_links(self.claude)), SKILL_COUNT)
         self.assertEqual(len(repo_links(self.agents)), SKILL_COUNT)
 
+    def test_real_dir_backed_up(self):
+        (self.claude / "graphify").mkdir(parents=True)
+        (self.claude / "graphify" / "old.txt").write_text("old")
+        report = run(self.home)
+        self.assertTrue((self.claude / "graphify").is_symlink())
+        self.assertIn("claude/graphify", report["backed_up"])
+        self.assertTrue(any(p.name == "old.txt" for p in self.backups()))
+
