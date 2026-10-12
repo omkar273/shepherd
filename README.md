@@ -189,6 +189,8 @@ Packs are skills that install only when you need them. The catalog has four:
 - **productivity:** `/grill-me`, `/handoff`, `/teach`, `/to-questionnaire`,
   `/wait-what`, and `/retro`.
 - **design:** Anthropic's `frontend-design`, for landing pages and new UI.
+  Also `scroll-craft` from [nateherkai](https://github.com/nateherkai/scroll-craft),
+  for scroll-driven landing pages; generating imagery needs a kie.ai key.
 - **reverse-engineering:** [REA](https://github.com/morluto/rea)'s
   `reverse-engineer-anything`, for shipped binaries, APKs, Electron apps, and
   firmware. The skill drives REA's MCP server and CLI, which you set up

@@ -151,6 +151,13 @@
           "path": "skills/frontend-design",
           "license": "Apache-2.0",
           "decision": "catalog/decisions/2026-10-12-add-frontend-design.md"
+        },
+        {
+          "name": "scroll-craft",
+          "repo": "https://github.com/nateherkai/scroll-craft",
+          "path": "plugins/nateherk-design/skills/scroll-craft",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-add-scroll-craft.md"
         }
       ]
     },
