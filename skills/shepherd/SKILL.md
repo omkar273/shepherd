@@ -105,6 +105,7 @@ Install it?" Install only on a yes, following `skills.md`.
 | reverse-engineering | decompile, shipped binary, APK, Electron app internals, firmware | `reverse-engineer-anything` (needs the REA MCP server or `rea` CLI) |
 | video | make a video, promo or explainer video, captions, motion graphics, render video | `hyperframes` (installs its workflows on first use with `npx hyperframes`) |
 | writing | humanize, sounds like AI, AI-sounding text, rewrite this draft | `humanizer` |
+| seo | SEO, AEO, keyword research, site audit, AI visibility, structured data | `seo-audit`, `keyword-research`, `ai-visibility-audit` and 9 more OpenSEO skills (need the OpenSEO MCP server), `seo-aeo-best-practices`, `seo-aeo-audit` |
 
 ## The ladder
 
