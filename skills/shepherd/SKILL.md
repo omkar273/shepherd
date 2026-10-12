@@ -53,6 +53,7 @@ already exists. Subtract before you add.
 | "Set up", "update", "add" or "status" for skills | `skills.md` |
 | Installing or removing a pack | `skills.md` |
 | Adding or removing a catalog skill | `curate.md` |
+| SEO or AEO work on a site or product | `seo.md` |
 | A long, slow, or messy session | `context.md` |
 | "Consolidate shepherd lessons", "revert shepherd <commit>" | `learn.md` |
 
