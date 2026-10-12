@@ -104,6 +104,7 @@ Install it?" Install only on a yes, following `skills.md`.
 | design | landing page, new UI, redesign, visual style, scroll animation, UI polish, animation, layout | `frontend-design`, `scroll-craft` (generated assets need a kie.ai key), `emil-design-eng`, `better-layout` |
 | reverse-engineering | decompile, shipped binary, APK, Electron app internals, firmware | `reverse-engineer-anything` (needs the REA MCP server or `rea` CLI) |
 | video | make a video, promo or explainer video, captions, motion graphics, render video | `hyperframes` (installs its workflows on first use with `npx hyperframes`) |
+| writing | humanize, sounds like AI, AI-sounding text, rewrite this draft | `humanizer` |
 
 ## The ladder
 
