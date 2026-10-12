@@ -142,7 +142,10 @@
         "landing page",
         "new UI",
         "redesign",
-        "visual style"
+        "visual style",
+        "UI polish",
+        "animation",
+        "layout"
       ],
       "skills": [
         {
@@ -158,6 +161,20 @@
           "path": "plugins/nateherk-design/skills/scroll-craft",
           "license": "MIT",
           "decision": "catalog/decisions/2026-10-12-add-scroll-craft.md"
+        },
+        {
+          "name": "emil-design-eng",
+          "repo": "https://github.com/emilkowalski/skills",
+          "path": "skills/emil-design-eng",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-add-emil-design-eng.md"
+        },
+        {
+          "name": "better-layout",
+          "repo": "https://github.com/jakubkrehel/skills",
+          "path": "skills/better-layout",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-add-better-layout.md"
         }
       ]
     },
