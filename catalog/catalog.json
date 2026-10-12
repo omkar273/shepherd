@@ -180,6 +180,25 @@
           "decision": "catalog/decisions/2026-10-12-add-reverse-engineer-anything.md"
         }
       ]
+    },
+    "video": {
+      "domain": "Video editing and content creation",
+      "cues": [
+        "make a video",
+        "promo or explainer video",
+        "video captions",
+        "motion graphics",
+        "render video"
+      ],
+      "skills": [
+        {
+          "name": "hyperframes",
+          "repo": "https://github.com/heygen-com/hyperframes",
+          "path": "skills/hyperframes",
+          "license": "Apache-2.0",
+          "decision": "catalog/decisions/2026-10-12-add-hyperframes.md"
+        }
+      ]
     }
   }
 }
