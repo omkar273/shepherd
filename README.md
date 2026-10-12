@@ -182,7 +182,7 @@ Skills marked `mine` are authored here. Vendored skills record their source in
 
 ### Packs (experimental)
 
-Packs are skills that install only when you need them. The catalog has six:
+Packs are skills that install only when you need them. The catalog has seven:
 
 - **planning:** Matt Pocock's issue flow: `/to-spec`, `/to-tickets`,
   `/implement`, `/wayfinder`, `/triage`, and 5 more.
@@ -205,6 +205,12 @@ Packs are skills that install only when you need them. The catalog has six:
   `npx hyperframes skills update`.
 - **writing:** [blader](https://github.com/blader/humanizer)'s `humanizer`,
   which rewrites AI-sounding prose without changing what it says.
+- **seo:** [OpenSEO](https://github.com/every-app/open-seo)'s 12 skills
+  (audit, keyword research, competitors, link prospecting, AI visibility),
+  Sanity's `seo-aeo-best-practices`, and Warp's `seo-aeo-audit`. OpenSEO
+  needs its MCP server connected (hosted, or self-hosted with a DataForSEO
+  key) and spends credits; the audit scripts use your own PageSpeed and
+  Search Console keys.
 
 When a task fits a pack you don't have, `shepherd` offers it once per session
 and never installs without your yes. You can also say **"what packs are

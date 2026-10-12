@@ -234,6 +234,118 @@
           "decision": "catalog/decisions/2026-10-12-add-humanizer.md"
         }
       ]
+    },
+    "seo": {
+      "domain": "SEO and AEO for websites and products",
+      "cues": [
+        "SEO",
+        "AEO",
+        "keyword research",
+        "site audit",
+        "AI visibility",
+        "structured data",
+        "search ranking"
+      ],
+      "skills": [
+        {
+          "name": "seo-project-setup",
+          "repo": "https://github.com/every-app/open-seo",
+          "path": "plugins/openseo/skills/seo-project-setup",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-add-openseo.md"
+        },
+        {
+          "name": "seo-coach",
+          "repo": "https://github.com/every-app/open-seo",
+          "path": "plugins/openseo/skills/seo-coach",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-add-openseo.md"
+        },
+        {
+          "name": "seo-audit",
+          "repo": "https://github.com/every-app/open-seo",
+          "path": "plugins/openseo/skills/seo-audit",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-add-openseo.md"
+        },
+        {
+          "name": "seo-report",
+          "repo": "https://github.com/every-app/open-seo",
+          "path": "plugins/openseo/skills/seo-report",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-add-openseo.md"
+        },
+        {
+          "name": "keyword-research",
+          "repo": "https://github.com/every-app/open-seo",
+          "path": "plugins/openseo/skills/keyword-research",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-add-openseo.md"
+        },
+        {
+          "name": "keyword-clustering",
+          "repo": "https://github.com/every-app/open-seo",
+          "path": "plugins/openseo/skills/keyword-clustering",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-add-openseo.md"
+        },
+        {
+          "name": "competitor-analysis",
+          "repo": "https://github.com/every-app/open-seo",
+          "path": "plugins/openseo/skills/competitor-analysis",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-add-openseo.md"
+        },
+        {
+          "name": "competitive-landscape",
+          "repo": "https://github.com/every-app/open-seo",
+          "path": "plugins/openseo/skills/competitive-landscape",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-add-openseo.md"
+        },
+        {
+          "name": "link-prospecting",
+          "repo": "https://github.com/every-app/open-seo",
+          "path": "plugins/openseo/skills/link-prospecting",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-add-openseo.md"
+        },
+        {
+          "name": "local-seo",
+          "repo": "https://github.com/every-app/open-seo",
+          "path": "plugins/openseo/skills/local-seo",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-add-openseo.md"
+        },
+        {
+          "name": "ai-visibility-audit",
+          "repo": "https://github.com/every-app/open-seo",
+          "path": "plugins/openseo/skills/ai-visibility-audit",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-add-openseo.md"
+        },
+        {
+          "name": "ai-prompt-research",
+          "repo": "https://github.com/every-app/open-seo",
+          "path": "plugins/openseo/skills/ai-prompt-research",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-add-openseo.md"
+        },
+        {
+          "name": "seo-aeo-best-practices",
+          "repo": "https://github.com/sanity-io/agent-toolkit",
+          "path": "skills/seo-aeo-best-practices",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-add-seo-aeo-best-practices.md"
+        },
+        {
+          "name": "seo-aeo-audit",
+          "repo": "https://github.com/warpdotdev/oz-skills",
+          "path": ".agents/skills/seo-aeo-audit",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-add-seo-aeo-audit.md"
+        }
+      ]
     }
   }
 }
