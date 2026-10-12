@@ -191,6 +191,10 @@ Packs are skills that install only when you need them. The catalog has five:
 - **design:** Anthropic's `frontend-design`, for landing pages and new UI.
   Also `scroll-craft` from [nateherkai](https://github.com/nateherkai/scroll-craft),
   for scroll-driven landing pages; generating imagery needs a kie.ai key.
+  Also `emil-design-eng` from [Emil Kowalski](https://github.com/emilkowalski/skills),
+  for motion and component polish, and `better-layout` from
+  [Jakub Krehel](https://github.com/jakubkrehel/skills), for grouping,
+  alignment, and responsive structure.
 - **reverse-engineering:** [REA](https://github.com/morluto/rea)'s
   `reverse-engineer-anything`, for shipped binaries, APKs, Electron apps, and
   firmware. The skill drives REA's MCP server and CLI, which you set up
