@@ -216,6 +216,24 @@
           "decision": "catalog/decisions/2026-10-12-add-hyperframes.md"
         }
       ]
+    },
+    "writing": {
+      "domain": "Writing and editing prose",
+      "cues": [
+        "humanize",
+        "sounds like AI",
+        "AI-sounding text",
+        "rewrite this draft"
+      ],
+      "skills": [
+        {
+          "name": "humanizer",
+          "repo": "https://github.com/blader/humanizer",
+          "path": ".",
+          "license": "MIT",
+          "decision": "catalog/decisions/2026-10-12-add-humanizer.md"
+        }
+      ]
     }
   }
 }
