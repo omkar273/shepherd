@@ -103,6 +103,7 @@ Install it?" Install only on a yes, following `skills.md`.
 | productivity | handoff, teach me, questionnaire, retro, grill me | `/grill-me`, `/handoff`, `/teach`, `/to-questionnaire`, `/wait-what`, `/retro` |
 | design | landing page, new UI, redesign, visual style, scroll animation | `frontend-design`, `scroll-craft` (generated assets need a kie.ai key) |
 | reverse-engineering | decompile, shipped binary, APK, Electron app internals, firmware | `reverse-engineer-anything` (needs the REA MCP server or `rea` CLI) |
+| video | make a video, promo or explainer video, captions, motion graphics, render video | `hyperframes` (installs its workflows on first use with `npx hyperframes`) |
 
 ## The ladder
 

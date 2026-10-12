@@ -182,7 +182,7 @@ Skills marked `mine` are authored here. Vendored skills record their source in
 
 ### Packs (experimental)
 
-Packs are skills that install only when you need them. The catalog has four:
+Packs are skills that install only when you need them. The catalog has five:
 
 - **planning:** Matt Pocock's issue flow: `/to-spec`, `/to-tickets`,
   `/implement`, `/wayfinder`, `/triage`, and 5 more.
@@ -195,6 +195,10 @@ Packs are skills that install only when you need them. The catalog has four:
   `reverse-engineer-anything`, for shipped binaries, APKs, Electron apps, and
   firmware. The skill drives REA's MCP server and CLI, which you set up
   separately (`npx rea-agents setup`).
+- **video:** HeyGen's [HyperFrames](https://github.com/heygen-com/hyperframes)
+  `hyperframes` router, for promos, explainers, captions, and motion graphics
+  rendered from HTML. It installs its workflow skills on first use with
+  `npx hyperframes skills update`.
 
 When a task fits a pack you don't have, `shepherd` offers it once per session
 and never installs without your yes. You can also say **"what packs are
