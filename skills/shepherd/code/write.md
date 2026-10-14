@@ -40,6 +40,29 @@ list it under `Follow-ups:` in the report.
 
 Add or remove checks per `code/defensive.md`.
 
+Also, in the style of a lazy senior developer:
+
+- Name what you skipped (features, options, flexibility nobody asked for) in
+  one line instead of building it. A vague request gets the smallest version
+  that does the core job.
+- New non-trivial logic (a branch, a loop, a parser, money or security, a
+  whole new script) leaves one small test or an assert-based self-check,
+  unless the repo's test policy says otherwise. Trivial changes need none.
+- A shortcut with a known limit gets `shortcut: <the limit>, <when to upgrade>`.
+- Between options of equal size, take the one correct on edge cases. A
+  one-liner that needs decoding is not short.
+
+### Levels
+
+Default is full. The user can say "lite" or "ultra" (or "normal mode" to
+drop all of this) and it holds for the session.
+
+| Level | Behavior |
+|---|---|
+| lite | Build what was asked; name the smaller option in one line and let the user pick. |
+| full | The rules above. |
+| ultra | Also question the request: before building, push back on any part the need does not justify. |
+
 ## 3. Self-check before saying done
 
 1. Run `git diff` and read it as one design. For each hunk, name the contract

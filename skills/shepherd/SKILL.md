@@ -42,6 +42,7 @@ already exists. Subtract before you add.
 |---|---|
 | Writing or changing code | `code/write.md`, `code/defensive.md` |
 | Reviewing a PR or branch | `code/review.md`, `code/defensive.md` |
+| Audit a repo or change for bugs, risk, scale, tests, bloat; list deferred shortcuts | `code/audit.md` |
 | `.go` files or `go.mod` | + `lang/go.md` |
 | `.ts` files | + `lang/typescript.md` |
 | `.svelte`, `.svelte.ts` | + `lang/typescript.md`, `lang/svelte.md` |
