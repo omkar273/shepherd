@@ -211,6 +211,11 @@ Packs are skills that install only when you need them. The catalog has seven:
   needs its MCP server connected (hosted, or self-hosted with a DataForSEO
   key) and spends credits; the audit scripts use your own PageSpeed and
   Search Console keys.
+- **simulation:** ara.so's `mirofish-offline-simulation`, a guide to running
+  [MiroFish-Offline](https://github.com/nikmcfly/MiroFish-Offline) (AGPL),
+  which simulates public reaction to a document with local agents. You run
+  Neo4j and Ollama yourself; the skill is unlicensed and added below the
+  catalog bar (see its decision record).
 
 When a task fits a pack you don't have, `shepherd` offers it once per session
 and never installs without your yes. You can also say **"what packs are

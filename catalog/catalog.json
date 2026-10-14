@@ -346,6 +346,25 @@
           "decision": "catalog/decisions/2026-10-12-add-seo-aeo-audit.md"
         }
       ]
+    },
+    "simulation": {
+      "domain": "Multi-agent opinion and market simulation",
+      "cues": [
+        "simulate public reaction",
+        "swarm simulation",
+        "market sentiment",
+        "opinion dynamics",
+        "MiroFish"
+      ],
+      "skills": [
+        {
+          "name": "mirofish-offline-simulation",
+          "repo": "https://github.com/aradotso/trending-skills",
+          "path": "skills/mirofish-offline-simulation",
+          "license": "none",
+          "decision": "catalog/decisions/2026-10-14-add-mirofish-offline-simulation.md"
+        }
+      ]
     }
   }
 }
