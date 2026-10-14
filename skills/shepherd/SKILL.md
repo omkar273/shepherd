@@ -107,6 +107,7 @@ Install it?" Install only on a yes, following `skills.md`.
 | video | make a video, promo or explainer video, captions, motion graphics, render video | `hyperframes` (installs its workflows on first use with `npx hyperframes`) |
 | writing | humanize, sounds like AI, AI-sounding text, rewrite this draft | `humanizer` |
 | seo | SEO, AEO, keyword research, site audit, AI visibility, structured data | `seo-audit`, `keyword-research`, `ai-visibility-audit` and 9 more OpenSEO skills (need the OpenSEO MCP server), `seo-aeo-best-practices`, `seo-aeo-audit` |
+| simulation | simulate public reaction, market sentiment, swarm simulation, MiroFish | `mirofish-offline-simulation` (needs local Neo4j and Ollama) |
 
 ## The ladder
 
@@ -144,7 +145,8 @@ Code that has not earned its place, when writing and when reviewing:
 - A comment the code could carry instead, through a better name, a named
   constant, or a type. A comment earns its place only for a non-obvious why,
   an outside constraint (a library bug, a spec, an audit item), a deliberate
-  deviation, or a TODO with an owner, in at most 2 lines. Commented-out code
+  deviation, a TODO with an owner, or a known shortcut written as
+  `shortcut: <the limit>, <when to upgrade>`, in at most 2 lines. Commented-out code
   is deleted; git remembers it.
 - Logging on the happy path.
 - Edits to code the task didn't ask about: refactors, renames, reformatting,
