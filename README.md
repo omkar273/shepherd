@@ -182,7 +182,7 @@ Skills marked `mine` are authored here. Vendored skills record their source in
 
 ### Packs (experimental)
 
-Packs are skills that install only when you need them. The catalog has seven:
+Packs are skills that install only when you need them. The catalog has eight:
 
 - **planning:** Matt Pocock's issue flow: `/to-spec`, `/to-tickets`,
   `/implement`, `/wayfinder`, `/triage`, and 5 more.
