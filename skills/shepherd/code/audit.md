@@ -53,7 +53,7 @@ End with the load assumed and `Not checked:`.
 
 List every deliberate shortcut so a deferral cannot quietly become permanent.
 
-- Scan: `git grep --no-index --exclude-standard -nE '(#|//|/[*]) ?shortcut:'`
+- Scan: `git grep --no-index --exclude-standard -nE '(#|//|/[*]|--|<!--) ?shortcut:'`
   (the user may name another marker word; add other comment prefixes if the
   stack needs them). Skip hits that are not a deferral.
 - One row per marker, grouped by file:
