@@ -2,31 +2,35 @@
 
 ## Keep
 
-- Loading, error, and empty states for async data the user sees.
+- Loading, error, and empty states for async data that the user sees.
 - Effect cleanup, and correct dependency arrays.
 - Route-level error boundaries.
 - Sanitization around `dangerouslySetInnerHTML`.
 
 ## Cut
 
-- `useState(prop)` that copies a prop. Use the prop; the copy goes stale when
-  the prop changes.
-- A `useEffect` that sets state computed from props or state. Compute it
-  during render.
-- `useMemo` or `useCallback` around cheap values, or for children that aren't
+- `useState(prop)` that copies a prop. Use the prop. The copy becomes stale
+  when the prop changes.
+- A `useEffect` that computes a value from props or state and sets it as
+  state. Compute the value during render.
+- `useMemo` or `useCallback` around cheap values, or for children that are not
   memoized. If the repo uses React Compiler, all manual memoization is noise.
-- A custom hook wrapping one call (`useQuery`, `useState`) for one consumer.
-- Context for data passed only one or two levels down. Use props.
-- Pass-through wrapper components; optional props that no caller passes.
+- A custom hook that wraps one call (`useQuery`, `useState`) for one consumer.
+- Context for data that goes only one or two levels down. Use props.
+- Pass-through wrapper components.
+- Optional props that no caller passes.
 - `if (!data) return null` when the type guarantees `data`.
 
 ## Boundaries
 
-URL and search params, form input, API responses (validate in the data layer,
-not in every component), `localStorage`, `postMessage`.
+The boundaries are URL and search params, form input, API responses,
+`localStorage`, and `postMessage`. Validate API responses in the data layer,
+not in every component.
 
 ## Wiring
 
-Route registration, providers mounted above every consumer, query keys that
-match their invalidations, exports through the repo's index or barrel file,
-and the repo's design-system component over a new or native one.
+- Route registration.
+- Providers that you mount above every consumer.
+- Query keys that match their invalidations.
+- Exports through the repo's index or barrel file.
+- The repo's design-system component instead of a new or native one.

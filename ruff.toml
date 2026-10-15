@@ -1,0 +1,3 @@
+# The scripts use `l` for a line in a comprehension, and one lambda as a sort key.
+[lint]
+ignore = ["E741", "E731"]

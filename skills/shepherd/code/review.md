@@ -1,54 +1,59 @@
 # Review mode
 
-For a teammate's pull request or branch.
+Use review mode for a teammate's pull request or branch.
 
 ## Gather, without touching the working tree
 
-- GitHub PR:
-  - `gh pr view <n> --json title,body,baseRefName,headRefOid,files,url`
-  - `gh pr diff <n>`
-  - `git fetch origin pull/<n>/head`
-  - Read and grep at the head SHA: `git show <sha>:<path>`,
+- For a GitHub PR:
+  - Run `gh pr view <n> --json title,body,baseRefName,headRefOid,files,url`.
+  - Run `gh pr diff <n>`.
+  - Run `git fetch origin pull/<n>/head`.
+  - Read files at the head SHA with `git show <sha>:<path>`. Grep with
     `git grep -n <pattern> <sha>`.
-  - Never run `gh pr checkout` and never switch branches.
-- Local branch: `git diff <base>...<branch>`, then the same `git show` and
-  `git grep` at the branch tip.
-- Read the repo's root `CLAUDE.md` / `AGENTS.md` at that revision, plus every
-  `AGENTS.md` on the path down to each directory the diff touches. Load
-  `lang/` files by the diff's file extensions.
-- The PR's intent is its title, body, and linked issue. Judge scope against
-  that.
+  - Never run `gh pr checkout`. Never switch branches.
+- For a local branch, run `git diff <base>...<branch>`. Then run the same
+  `git show` and `git grep` commands at the branch tip.
+- At that revision, read the repo's root `CLAUDE.md` / `AGENTS.md`. At the
+  same revision, read every `AGENTS.md` on the path down to each directory
+  that the diff touches. Load the `lang/` files that match the file
+  extensions in the diff.
+- The PR's intent is its title, body, and linked issue. Judge the scope
+  against this intent.
 
 ## Passes, in order
 
 1. Wiring. For each changed signature or behavior, grep every caller at the
-   head. Check every reach-list item the change implies: registrations
-   (routes, DI, workers, router tables, exports), error-to-status mappings
-   for new error values, config and env, migrations, generated code, and any
-   construction site the repo's docs list.
-2. Defensive checks, by the tiers in `code/defensive.md`. Never-cut items stay
-   out of the findings.
-3. The shared cut list in `SKILL.md`. Where the PR deletes code as unused,
-   run the "Proving code is unused" checks; deleting something load-bearing
-   is a MUST.
-4. Scope: hunks unrelated to the PR's intent, including old comments or lint
-   backlog stripped from files the PR only touches.
+   head. Check every reach-list item that the change implies:
+   - registrations (routes, DI, workers, router tables, exports)
+   - error-to-status mappings for new error values
+   - config and env
+   - migrations
+   - generated code
+   - any construction site that the repo's docs list
+2. Defensive checks. Review each defensive check by the tiers in
+   `code/defensive.md`. Keep never-cut items out of the findings.
+3. The shared cut list in `SKILL.md`. If the PR deletes code as unused, run
+   the "Proving code is unused" checks. If the PR deletes something
+   load-bearing, report it as a MUST.
+4. Scope. Find hunks that are unrelated to the PR's intent. These include old
+   comments or lint backlog that the PR strips from files that it only
+   touches.
 
 ## Finding contract
 
 Each finding is: `file:line`, what it is, evidence, fix.
 
-- Evidence is concrete: the callers grepped, the invariant, where the
-  duplicate lives, the repo rule it breaks.
+- Evidence is concrete: the callers that you grepped, the invariant, where
+  the duplicate is, the repo rule that the change breaks.
 - The fix deletes, inlines, moves, or wires code.
-- A concern whose fix adds new code (a shared helper, a feature, hardening,
-  tests beyond what the repo requires) is not a lean finding. Give it one line
-  under `Outside lean`, or drop it. Correctness and security bugs you happen
-  to notice go there too, with a pointer to `/code-review` or
-  `/security-review` for depth.
+- A concern is not a lean finding if its fix adds new code (a shared helper,
+  a feature, hardening, tests beyond what the repo requires). Give it one
+  line under `Outside lean`, or drop it. Put correctness and security bugs
+  that you notice by chance under `Outside lean` too. Add a pointer to
+  `/code-review` or `/security-review` for depth.
 - A `shortcut:` or TODO comment that names its limit is the author's decision,
   not a finding.
-- Issues the repo's linter catches: say "lint will flag these" once.
+- For issues that the repo's linter catches, say "lint will flag these" once.
 
 ## Draft for the user
 
@@ -63,16 +68,16 @@ ASK     MEDIUM-tier checks, phrased as a question
 Outside lean    one line each
 ```
 
-Number findings across all groups. Pure deletions get a GitHub
-`suggestion` block so the author can apply them in one click. If the repo has
-its own review format, map MUST and SHOULD to its "act on" level and ASK to its
-"consider" level.
+Number the findings across all groups. Give each pure deletion a GitHub
+`suggestion` block, so that the author can apply it in one click. If the repo
+has its own review format, map MUST and SHOULD to its "act on" level. In that
+case, map ASK to the "consider" level of that format.
 
 ## Posting, only after the user approves
 
-- The user picks which findings go out, and may edit them.
-- Post one review with event `COMMENT` and only the approved inline comments.
-  Write the payload to a temp file outside the repo, then run
+- The user picks the findings to post. The user can also edit them.
+- Post one review with the event `COMMENT` and only the approved inline
+  comments. Write the payload to a temporary file outside the repo. Then run
   `gh api repos/{owner}/{repo}/pulls/<n>/reviews --method POST --input <file>`:
 
 ```json
@@ -84,7 +89,7 @@ its own review format, map MUST and SHOULD to its "act on" level and ASK to its
 }
 ```
 
-- Never use `APPROVE` or `REQUEST_CHANGES` unless the user says to. Never push,
-  commit, or resolve threads.
-- Large PRs (over about 40 files or 1,500 changed lines): review stack by
-  stack, and list skipped areas under `Not checked:`.
+- Never use `APPROVE` or `REQUEST_CHANGES` unless the user asks for that
+  event. Never push, commit, or resolve threads.
+- If a PR has more than about 40 files or 1,500 changed lines, review it
+  stack by stack. List the areas that you skip under `Not checked:`.

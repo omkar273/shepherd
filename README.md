@@ -159,7 +159,7 @@ Skills marked `mine` are authored here. Vendored skills record their source in
 
 | Skill | Description | Source |
 | --- | --- | --- |
-| `shepherd` | Use when writing, changing, or reviewing code in any repo - implementing a feature or fix, refactoring, reviewing a teammate's pull request, a branch, or a diff (before or alongside code-review), debugging, planning a multi-file change, or wrapping up a change before saying it is done - whenever about to add a helper, wrapper, interface, layer, option, defensive check, or test the task did not ask for, and when setting up, updating, adding, or checking skills. | local |
+| `shepherd` | Use when you write, change, or review code or docs in a repo. That includes a feature, a fix, a refactor, a debug session, and a plan for a multi-file change. Use it to review a teammate's pull request, branch, or diff (before or with code-review), and before you say a change is done. Use it before you add a helper, wrapper, interface, layer, option, defensive check, or test that the task did not ask for. Use it to set up, update, add, or check skills. | local |
 
 ### Vendored
 
