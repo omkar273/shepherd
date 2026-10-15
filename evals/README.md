@@ -173,8 +173,8 @@ one trial show no variance.
 ### Run it
 
 You need Claude Code, Python 3.11 or later, Go, and Git. One Sonnet trial of
-all arms costs about 9 USD. A sample of 6 Opus runs cost 2.5 times the same
-Sonnet runs, so 3 trials on both models cost about 100 USD. Start with one arm
+all arms costs about 11 USD. A sample of 6 Opus runs cost 2.5 times the same
+Sonnet runs, so 3 trials on both models cost about 125 USD. Start with one arm
 pair and one trial:
 
 ```bash
