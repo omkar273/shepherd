@@ -67,16 +67,12 @@ write mode to `code/write.md`. Each one fails open.
   Fix the findings that your edit caused. Do not fix old findings in lines
   that the task does not touch.
 - **Stop:** if the turn wrote a file in the git repo with any tool, the hook
-  blocks the stop one time. A file that changed after the prompt counts. The
-  hook blocks until the turn did section 3 of `code/write.md`:
-  - The refine pass, if the turn added more than 20 lines.
-  - The repo's checks, after the last write. The hook finds the checks in
-    `package.json` scripts, `Makefile` targets, `go.mod`, `Cargo.toml`, and
-    the ruff config.
-  - The diff report.
-
-  If a check cannot run, name it under `Not checked:`. The next stop always
-  goes through, so the hook cannot loop.
+  blocks the stop one time. It blocks until the repo's checks ran after the
+  last write. A file that changed after the prompt counts. The hook finds
+  the checks in `package.json` scripts, `Makefile` targets, `go.mod`,
+  `Cargo.toml`, and the ruff config. If a check cannot run, name it under
+  `Not checked:`. The next stop always goes through, so the hook cannot
+  loop.
 
 ## Check the meter
 

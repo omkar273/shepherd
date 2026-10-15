@@ -10,8 +10,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 SCRIPT = Path(__file__).resolve().parent.parent / "write_hooks.py"
-REPORT = ("Rung: 2\nChanged: a.py - x\nLean: nothing cut\nFixed alongside: none\n"
-          "Follow-ups: none\nNot checked: none")
 
 
 class Base(unittest.TestCase):
@@ -42,11 +40,6 @@ def stamp(when):
 
 def bash(command, at=10):
     return {"type": "tool_use", "name": "Bash", "input": {"command": command}, "at": at}
-
-
-def refine(at=10):
-    return {"type": "tool_use", "name": "Agent", "at": at,
-            "input": {"model": "haiku", "prompt": "Refine pass. Do not edit files."}}
 
 
 def say(text):
@@ -89,94 +82,67 @@ class StopTests(Base):
         return json.loads(result.stdout) if result.stdout else None
 
     def test_no_write_silent(self):
-        self.assertIsNone(self.stop(bash("git status"), say("All good.")))
+        self.assertIsNone(self.stop(bash("git status")))
 
-    def test_write_without_report_blocks(self):
+    def test_no_checks_defined_silent(self):
         self.write("a.py")
-        result = self.stop(say("Done."))
+        self.assertIsNone(self.stop(say("Done.")))
+
+    def test_go_check_must_follow_last_write(self):
+        self.commit({"go.mod": "module x\n"})
+        self.write("a.go")
+        result = self.stop(bash("go vet ./...", at=-50), say("Done."))
         self.assertEqual(result["decision"], "block")
-        self.assertIn("code/write.md", result["reason"])
-        self.assertIn("Rung, Changed, Lean, Fixed alongside, Follow-ups, Not checked", result["reason"])
-        self.assertNotIn("Run these checks", result["reason"])
-        self.assertNotIn("refine", result["reason"])
+        self.assertIn("code/write.md): go vet ./....", result["reason"])
+        self.assertIsNone(self.stop(bash("go build ./... && go vet ./...")))
 
-    def test_write_with_report_silent(self):
-        self.write("a.py")
-        self.assertIsNone(self.stop(say(REPORT)))
+    def test_write_through_bash_counts(self):
+        self.commit({"go.mod": "module x\n"})
+        self.assertIsNone(self.stop(bash("git status")))
+        self.write("a.go")
+        self.assertEqual(self.stop(bash("python3 edit.py", at=-5))["decision"], "block")
 
     def test_committed_write_counts(self):
-        self.write("b.py")
+        self.commit({"go.mod": "module x\n"})
+        self.write("b.go")
         git = ["git", "-C", str(self.repo), "-c", "user.name=t", "-c", "user.email=t@example.com"]
         subprocess.run(git + ["add", "-A"], check=True)
         subprocess.run(git + ["commit", "-q", "-m", "turn"], check=True)
         self.assertEqual(self.stop(say("Done."))["decision"], "block")
 
     def test_file_from_before_the_prompt_ignored(self):
-        self.write("b.py", 40)
-        os.utime(self.repo / "b.py", (time.time() - PROMPT - 10, time.time() - PROMPT - 10))
-        self.assertIsNone(self.stop(say("Hi.")))
-
-    def test_bold_labels_count(self):
-        self.write("a.py")
-        bold = REPORT.replace("Rung:", "**Rung:**").replace("Lean:", "**Lean**:")
-        self.assertIsNone(self.stop(say(bold)))
-
-    def test_report_in_last_message_counts(self):
-        self.write("a.py")
-        self.data["last_assistant_message"] = REPORT
-        self.assertIsNone(self.stop())
-
-    def test_names_missing_lines_only(self):
-        self.write("a.py")
-        result = self.stop(say(REPORT.replace("Not checked: none", "")))
-        self.assertIn("These lines are missing: Not checked.", result["reason"])
-
-    def test_big_write_needs_refine_pass(self):
-        self.write("b.py", 30)
-        result = self.stop(say(REPORT))
-        self.assertIn("Do the refine pass of step 1.", result["reason"])
-        self.assertNotIn("missing", result["reason"])
-        self.assertIsNone(self.stop(refine(), say(REPORT)))
-
-    def test_refine_before_writes_does_not_count(self):
-        self.write("b.py", 30)
-        self.assertIn("refine pass", self.stop(refine(at=-50), say(REPORT))["reason"])
-
-    def test_added_lines_of_tracked_file(self):
-        self.write("a.py", 15)
-        self.assertIsNone(self.stop(say(REPORT)))
-        self.write("a.py", 25)
-        self.assertIn("refine pass", self.stop(say(REPORT))["reason"])
-
-    def test_go_check_must_follow_last_write(self):
         self.commit({"go.mod": "module x\n"})
-        self.write("a.go")
-        result = self.stop(bash("go vet ./...", at=-50), say(REPORT))
-        self.assertEqual(result["decision"], "block")
-        self.assertIn("Run these checks after your last edit: go vet ./....", result["reason"])
-        self.assertNotIn("missing", result["reason"])
-        self.assertIsNone(self.stop(bash("go build ./... && go vet ./..."), say(REPORT)))
+        self.write("b.go")
+        os.utime(self.repo / "b.go", (time.time() - PROMPT - 10, time.time() - PROMPT - 10))
+        self.assertIsNone(self.stop(say("Hi.")))
 
     def test_package_scripts(self):
         self.commit({"package.json": json.dumps({"scripts": {"lint": "eslint .", "test": "vitest",
                                                              "build": "vite build"}}),
                      "pnpm-lock.yaml": ""})
         self.write("a.ts")
-        result = self.stop(bash("pnpm lint"), bash("pnpm test", at=-50), say(REPORT))
-        self.assertIn("Run these checks after your last edit: pnpm run test.", result["reason"])
-        self.assertIsNone(self.stop(bash("pnpm lint && pnpm test -- a"), say(REPORT)))
+        result = self.stop(bash("pnpm lint"), bash("pnpm test", at=-50))
+        self.assertIn("code/write.md): pnpm run test.", result["reason"])
+        self.assertIsNone(self.stop(bash("pnpm lint && pnpm test -- a")))
+
+    def test_ruff_and_makefile(self):
+        self.commit({"ruff.toml": "", "Makefile": "test:\n\tpytest\nfmt:\n\tblack .\n"})
+        self.write("a.py")
+        self.assertIn("make test, ruff check .", self.stop()["reason"])
+        self.assertIsNone(self.stop(bash("ruff check . && make test")))
 
     def test_stop_hook_active_silent(self):
-        self.write("a.py")
+        self.commit({"go.mod": "module x\n"})
+        self.write("a.go")
         self.data["stop_hook_active"] = True
         self.assertIsNone(self.stop(say("Done.")))
 
     def test_write_outside_repo_silent(self):
+        self.commit({"go.mod": "module x\n"})
         (self.tmp / "notes.md").write_text("x\n")
         self.assertIsNone(self.stop(say("Done.")))
 
     def test_not_a_repo_silent(self):
-        self.write("a.py")
         self.data["cwd"] = str(self.tmp)
         self.assertIsNone(self.stop(say("Done.")))
 
