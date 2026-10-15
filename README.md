@@ -206,9 +206,11 @@ the agent sees the skill, so Step 0 needs no extra tool call. The script runs
 from the skill's `allowed-tools`, so Claude Code may ask once before it runs
 the skill.
 
-The full setup also links the `lang/` files into `~/.claude/rules/shepherd` as
-path rules. Claude Code loads the Go rules only when the agent opens a `.go`
-file, so a Go change never loads the TypeScript rules.
+The full setup also links the `lang/` files (Go, TypeScript, React, Svelte,
+Python) into `~/.claude/rules/shepherd` as path rules. Claude Code loads the Go
+rules only when the agent opens a `.go` file, so a Go change never loads the
+TypeScript rules. Each file first names the static tools to run, then ranks its
+rules by impact, with a bad/good code pair for each high-impact rule.
 
 ## The full setup
 
@@ -422,8 +424,13 @@ The contributions that help most:
 
 1. **A check `shepherd` cut that mattered**, or one it should have cut: open
    a bug report with the code shape.
-2. **A language file:** `skills/shepherd/lang/<language>.md` with the same four
-   headings (keep, cut, boundaries, wiring).
+2. **A language file:** `skills/shepherd/lang/<language>.md`. Use the shape of
+   `lang/go.md`: `paths:` frontmatter, then the tools to run first (only tools
+   that the repo already has), then the four headings (keep, cut, boundaries,
+   wiring). Rank each rule CRITICAL, HIGH, or MEDIUM. Give each CRITICAL and
+   HIGH rule a short bad/good code pair. Keep the file under 150 lines. In the
+   PR, show the [bench](evals/README.md) numbers for that language before and
+   after the change.
 3. **An eval fixture** for a stack the evals don't cover yet; see
    [Adding a case](evals/README.md#adding-a-case).
 4. **A skill proposal:** use the skill request form.

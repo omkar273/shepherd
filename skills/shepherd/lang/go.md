@@ -6,52 +6,106 @@ paths:
 
 # Go
 
-Run `go build ./... && go vet ./...`. Also run the repo's lint target: a
-Makefile `lint` or `lint-ci`, or golangci-lint if the repo configures it.
+Run the tools first. A tool finding is the authority. Do not repeat a rule
+here that a tool already reports.
 
-## Idiomatic: keep
+1. `go build ./... && go vet ./...`.
+2. The repo's lint target: a Makefile `lint` or `lint-ci`, or
+   `golangci-lint run` if the repo has a `.golangci.*` file. golangci-lint
+   runs staticcheck by default.
+3. If the repo has staticcheck without golangci-lint, run it: `go tool
+   staticcheck ./...` (a `tool` line in `go.mod`) or `staticcheck ./...`.
+   Do not install a tool.
 
-- `if err != nil { return err }` in intermediate layers. Add context once,
-  where the error occurs, with the repo's error package or
+Impact: CRITICAL is a security, money, or data bug, or a feature that does
+not work. HIGH is a bug in some cases, or a failure that nobody sees. MEDIUM
+is code that adds nothing. Fix or flag the CRITICAL items first.
+
+## Keep
+
+- **CRITICAL.** Tenant, owner, and state checks in a service, also when the
+  repo or the handler checks too. Workers and other services can call the
+  service directly.
+  ```go
+  // bad: "store.Get already scopes by org", so the re-check goes
+  // good: keep both
+  if o.OrgID != authz.OrgID(ctx) { return nil, ErrNotFound }
+  if o.Status != StatusOpen { return nil, ErrNotOpen }
+  ```
+- **CRITICAL.** `defer tx.Rollback()` right after `Begin`. After a commit,
+  `Rollback` is a no-op. Without it, an early return leaves the
+  transaction and its locks open.
+  ```go
+  tx, err := db.BeginTx(ctx, nil)
+  if err != nil { return err }
+  defer tx.Rollback() // keep, also with tx.Commit() below
+  ```
+- **HIGH.** `errors.Is` and `errors.As` for a wrapped error. `==` fails after
   `fmt.Errorf("...: %w", err)`.
-- `defer rows.Close()`, `defer tx.Rollback()` (after a commit,
-  `tx.Rollback()` is a no-op).
-- `ctx` as the first parameter, and `ctx.Err()` checks in long loops.
-- nil checks on pointers from nullable columns, optional JSON fields, or map
-  lookups.
-- `var _ Iface = (*T)(nil)` compile-time assertions.
-- nil-safe getters or builders when the repo's rules require them.
+  ```go
+  if err == sql.ErrNoRows { ... }          // bad
+  if errors.Is(err, sql.ErrNoRows) { ... } // good
+  ```
+- **HIGH.** `defer rows.Close()` and `defer resp.Body.Close()` after the
+  error check. Without them, the connection pool leaks.
+  ```go
+  resp, err := client.Do(req)
+  if err != nil { return err }
+  defer resp.Body.Close()
+  ```
+- **HIGH.** `ctx` as the first parameter, passed down to each call. A
+  goroutine has an owner that waits for it and a `ctx` that stops it.
+  ```go
+  go s.sync(context.Background()) // bad: no cancel, nobody waits
+  g.Go(func() error { return s.sync(ctx) }) // good: errgroup
+  ```
+- **HIGH.** nil checks on pointers from nullable columns, optional JSON
+  fields, and map lookups. A nil pointer there panics.
+  ```go
+  log.Print(*o.ShippedAt)                           // bad: NULL column panics
+  if o.ShippedAt != nil { log.Print(*o.ShippedAt) } // good
+  ```
+- **MEDIUM.** A bare `if err != nil { return nil, err }` in intermediate
+  layers. Add context once, where the error occurs, with the repo's error
+  package or `fmt.Errorf("...: %w", err)`.
+- **MEDIUM.** `var _ Iface = (*T)(nil)` compile-time assertions, and nil-safe
+  getters when the repo's rules require them.
 
-## Interfaces
+## Cut
 
-Follow the repo's convention for new services. Many repos declare an
-interface for each service next to its private implementation, and return
-the interface from the constructor. In those repos, this interface is the
-convention, not over-engineering.
-
-Before you flag any interface, grep `_test.go` files, `testutil/`, and
-`fake`, `stub`, or `mock` types for implementations. A hit means that the
-interface is load-bearing. Flag only a new interface that is outside the
-convention, has one implementation, and has no fake.
-
-## Noise: cut
-
-- `len(s) > 0` before `range s`, a check before a read from a nil map, and a
-  nil check before `len(x)`.
-- A nil check on a value whose constructor or repository contract never
-  returns nil together with a nil error.
-- Code that re-wraps or re-marks the same error at every layer, and a `%w`
+- **MEDIUM.** A guard that Go already gives: `len(s) > 0` before `range s`, a
+  nil check before a read from a nil map, a nil check before `len(x)`.
+  ```go
+  if len(o.Items) > 0 { for _, it := range o.Items { ... } } // bad
+  for _, it := range o.Items { ... }                         // good
+  ```
+- **MEDIUM.** A nil check on a value whose constructor or repository
+  contract never returns nil together with a nil error.
+  ```go
+  o, err := s.store.Get(ctx, id)
+  if err != nil { return nil, err }
+  if o == nil { return nil, ErrNotFound } // bad: Get never returns nil, nil
+  ```
+- **MEDIUM.** Validation of the same request in the handler and in the
+  service. Keep the service copy, because workers and other services call it
+  too. If the handler copy exists only for a 400, map the service error to
+  400.
+- **MEDIUM.** Code that logs an error and also returns it. Log once, at the
+  boundary that owns the failure.
+- **MEDIUM.** Code that wraps the same error again at each layer, and a `%w`
   that adds no context.
-- Code that logs an error and also returns it. Log once, at the boundary that
-  owns the failure.
-- Mutexes or channels around state that no other goroutine touches.
-- Validation of the same request in the handler and in the service. Keep the
-  copy that every entry point passes through. Usually this copy is in the
-  service, because workers and other services call it too. Delete the other
-  copy. If the handler copy exists only to produce a 400, map the service's
-  validation error to 400 instead.
+- **MEDIUM.** Mutexes or channels around state that no other goroutine
+  touches.
+- **MEDIUM.** A new interface outside the repo's convention with one
+  implementation and no fake. Many repos declare an interface for each
+  service next to its private implementation. In those repos, the interface
+  is the convention. Before you flag one, grep `_test.go` files, `testutil/`,
+  and `fake`, `stub`, or `mock` types. A hit means the interface stays.
 
 ## Boundaries
+
+Decode and validate at these points. After that, pass the typed value and do
+not check it again.
 
 - Request bind and decode.
 - Env and config, which the program parses once at startup.
@@ -62,10 +116,26 @@ convention, has one implementation, and has no fake.
 
 ## Wiring
 
-- Every place where the repo constructs services:
-  - The DI container (fx, wire, or a hand-written `main.go`).
-  - Any worker, job, or workflow registration that builds its own instances.
-- Routes, and the error-to-HTTP-status mapping for every new error value.
-- Generated code (ent, sqlc, mocks, swagger, SDKs): run the repo's generate
-  target. Never hand-edit the output.
-- `//go:build` tags.
+- **CRITICAL.** Every place where the repo constructs services. That is the
+  DI container (fx, wire, or a hand-written `main.go`), and each worker, job,
+  or workflow registration that builds its own instances. A service that only
+  `main.go` builds does not run in the worker.
+  ```go
+  // cmd/server/main.go: ships := service.NewShipService(store)
+  // internal/worker/register.go: bad, no NewShipService, so ship jobs fail
+  ```
+- **CRITICAL.** Routes, and the error-to-HTTP-status mapping for each new
+  error value. An unmapped error becomes a 500.
+  ```go
+  // bad: ErrAlreadyShipped falls through to 500
+  // good
+  case errors.Is(err, orders.ErrAlreadyShipped):
+      status = http.StatusConflict
+  ```
+- **HIGH.** Generated code (ent, sqlc, mocks, swagger, SDKs): run the repo's
+  generate target. Never edit the output by hand.
+  ```sh
+  $EDITOR internal/ent/order.go  # bad: the next generate drops the edit
+  go generate ./...              # good: change the schema, then generate
+  ```
+- **MEDIUM.** `//go:build` tags on new files that need them.
