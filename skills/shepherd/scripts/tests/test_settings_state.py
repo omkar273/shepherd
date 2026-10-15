@@ -2,6 +2,7 @@ import datetime
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -198,6 +199,9 @@ class CatalogUsageTests(Base):
         # Claude Code names project folders this way, e.g. "/a/my.app" -> "-a-my-app".
         self.slug = re.sub(r"[^A-Za-z0-9]", "-", str(self.repo.resolve()))
         self.sessions = 0
+        # A name with no skill folder and no builtin is stale, so the tests install these as user skills.
+        for name in ("shepherd", "grilling", "prototype", "wizard", "pr", "seo-audit"):
+            (self.home / ".claude" / "skills" / name).mkdir(parents=True)
 
     def session(self, entries, project=None, days_ago=0):
         self.sessions += 1
@@ -216,6 +220,18 @@ class CatalogUsageTests(Base):
     def skill(self, report, name):
         return next(s for s in report["skills"] if s["name"] == name)
 
+    def write_overrides(self, overrides):
+        (self.repo / ".claude").mkdir(exist_ok=True)
+        (self.repo / ".claude" / "settings.local.json").write_text(json.dumps({"skillOverrides": overrides}))
+
+    def write_skill(self, base, name, description):
+        (base / ".claude" / "skills" / name).mkdir(parents=True, exist_ok=True)
+        (base / ".claude" / "skills" / name / "SKILL.md").write_text(
+            f"---\nname: {name}\ndescription: {description}\n---\n")
+
+    def index(self):
+        return run("status.py", self.home, "--index", "--repo", str(self.repo)).stdout
+
     def test_catalog_name_only_for_unused(self):
         self.session([listing("shepherd", "grilling", "prototype"), tool_use("Skill", skill="shepherd"),
                       prompt("<command-name>/grilling</command-name>")])
@@ -229,11 +245,12 @@ class CatalogUsageTests(Base):
         local = self.repo / ".claude" / "settings.local.json"
         local.parent.mkdir()
         local.write_text(json.dumps({"skillOverrides": {"seo-audit": "name-only", "grilling": "off"}}))
+        (self.home / ".claude" / "skills" / "brainstorming").mkdir()
         self.session([listing("shepherd", "brainstorming", "executing-plans", "seo-audit", "grilling", "wizard",
                               "superpowers:executing-plans", "superpowers:writing-plans")])
         self.session([tool_use("Skill", skill="superpowers:executing-plans")])
         report = self.report("--keep", "seo-*")
-        self.assertEqual(report["keep"], ["brainstorming", "executing-plans", "seo-audit", "shepherd"])
+        self.assertEqual(report["keep"], ["brainstorming", "seo-audit", "shepherd"])
         self.assertEqual(report["patch"], {"skillOverrides": {"seo-audit": None, "wizard": "name-only"}})
         self.assertEqual(report["app_plugins"], {})
 
@@ -243,13 +260,12 @@ class CatalogUsageTests(Base):
         self.assertEqual(json.loads(output), {"skillOverrides": {"grilling": "name-only"}})
 
     def test_catalog_kinds(self):
-        (self.home / ".claude" / "skills" / "shepherd").mkdir(parents=True)
         (self.repo / ".claude" / "skills" / "local").mkdir(parents=True)
-        self.session([listing("shepherd", "local", "simplify", "design:ux-copy")])
+        self.session([listing("shepherd", "local", "simplify", "design:ux-copy", "gone")])
         report = self.report()
         kinds = {s["name"]: s["kind"] for s in report["skills"]}
         self.assertEqual(kinds, {"shepherd": "user", "local": "project", "simplify": "builtin",
-                                 "design:ux-copy": "plugin"})
+                                 "design:ux-copy": "plugin", "gone": "stale"})
 
     def test_catalog_counts_bare_plugin_skill_name(self):
         self.session([listing("superpowers:brainstorming", "design:ux-copy"),
@@ -296,21 +312,43 @@ class CatalogUsageTests(Base):
         self.assertEqual(report["patch"], {"enabledPlugins": {"pt@market": False}})
         self.assertEqual(report["app_plugins"], {"eng": 2})
 
-    def test_index_lists_name_only_skills_with_keywords(self):
-        local = self.repo / ".claude" / "settings.local.json"
-        local.parent.mkdir()
-        local.write_text(json.dumps({"skillOverrides": {"grilling": "name-only", "simplify": "name-only",
-                                                        "wizard": "off", "local": "name-only"}}))
-        for base, name, description in ((self.home, "grilling", "Grill the user about a plan, or a decision."),
-                                        (self.repo, "local", "Use when the repo needs a release note.")):
-            (base / ".claude" / "skills" / name).mkdir(parents=True)
-            (base / ".claude" / "skills" / name / "SKILL.md").write_text(
-                f"---\nname: {name}\ndescription: {description}\n---\n")
-        lines = run("status.py", self.home, "--index", "--repo", str(self.repo)).stdout.splitlines()
-        self.assertEqual(lines[1:], ["- grilling: grill, plan, decision", "- local: repo, needs, release, note"])
+    def test_catalog_drops_stale_names(self):
+        self.write_overrides({"gone": "name-only", "old": "off", "sp:x": "name-only"})
+        self.session([listing("grilling", "removed")])
+        report = self.report()
+        self.assertEqual(self.skill(report, "removed")["kind"], "stale")
+        self.assertEqual(report["patch"], {"skillOverrides": {"gone": None, "grilling": "name-only"}})
+
+    def test_index_cuts_descriptions(self):
+        self.write_overrides({"grilling": "name-only", "local": "name-only", "simplify": "name-only",
+                              "wizard": "off", "gone": "name-only", "sp:x": "name-only"})
+        self.write_skill(self.home, "grilling", "Grill the user about a plan, or a decision.")
+        self.write_skill(self.repo, "local", "alpha " * 40)
+        lines = self.index().splitlines()
+        self.assertEqual(lines[1:3], ["- grilling: Grill the user about a plan, or a decision.",
+                                      "- local: " + " ".join(["alpha"] * 26) + " ..."])
+        self.assertTrue(lines[3].startswith("- simplify: Review the changed code"))
+        self.assertEqual(len(lines), 4)
+
+    def test_index_stays_under_hook_cap(self):
+        names = [f"skill-{i:03d}" for i in range(120)]
+        self.write_overrides(dict.fromkeys(names, "name-only"))
+        for name in names:
+            self.write_skill(self.home, name, "Use when the task needs this skill. " * 10)
+        output = self.index()
+        self.assertLessEqual(len(output), 10_000)
+        self.assertEqual(len(output.splitlines()), 121)
 
     def test_index_silent_without_overrides(self):
-        self.assertEqual(run("status.py", self.home, "--index", "--repo", str(self.repo)).stdout, "")
+        self.assertEqual(self.index(), "")
+
+    def test_prune_registers_index_hook_for_startup_clear_compact(self):
+        doc = (SCRIPTS.parent / "skills.md").read_text()
+        command = re.search(r"`settings\.py (add-hook [^`]*--index[^`]*)`", doc).group(1)
+        run("settings.py", self.home, *shlex.split(command.replace("<the repo>", str(self.repo))), "--write")
+        group = json.loads((self.repo / ".claude" / "settings.local.json").read_text())["hooks"]["SessionStart"][0]
+        self.assertEqual(group["matcher"], "startup|clear|compact")
+        self.assertIn('status.py" --index', group["hooks"][0]["command"])
 
     def test_catalog_no_transcript_text(self):
         self.session([listing("grilling"), prompt("SECRET-PROMPT-TEXT"),
