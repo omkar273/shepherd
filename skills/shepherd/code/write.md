@@ -24,10 +24,15 @@ The finished diff contains exactly these items:
 
 1. The requested behavior. It must be correct when things fail. Some changes
    write more than one row, or move money or quantities. Make this type of
-   change atomic and safe against two concurrent requests. Use one
-   transaction, or a conditional update (`... where balance >= $1`). Use the
-   mechanism that the code already has, or the smallest one inside the
-   existing layer. Never add a new layer. Correctness is never a follow-up.
+   change atomic and safe against two concurrent requests. Do it inside the
+   existing layer, and never add a new layer:
+   - If the store has a transaction API, use one transaction.
+   - If the store has no transaction API, use a conditional update. Put the
+     guard and the arithmetic in the statement
+     (`set balance = balance - $1 where id = $2 and balance >= $1`). If no
+     row changes, the guard failed.
+   - Do not read a value, compute the new value in code, and write it back.
+     Correctness is never a limitation or a follow-up.
 2. The wiring from the reach list.
 3. Tests where the repo's test policy asks for them, or where the user asked
    for them.

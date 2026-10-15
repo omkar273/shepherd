@@ -3,8 +3,9 @@
 Use this file for "audit this repo", "review like the one who gets paged",
 "what can I delete", and "list the shortcuts". The output is a report that the
 user asked for. Give it in full. Do not change anything. For a teammate's PR,
-`code/review.md` owns the process and the format. Use the six categories below
-as extra lenses in that review.
+`code/review.md` owns the process and the format. Its lenses in
+`agents/lens.md` use the categories below: `wiring` uses bug, scale, speed,
+and missing test, `defensive` uses risk, and `cut` uses lean.
 
 The order of importance is: correct, safe, holds under load, tested, fast,
 lean.

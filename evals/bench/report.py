@@ -55,6 +55,7 @@ def summarize(runs):
     near = [s for s in trig if s["near_miss"]]
     m = {
         "runs": len(main),
+        "trials": max(r["trial"] for r, _ in runs),
         "caught": pct(sum(len(s["caught"]) for _, s in reviews), sum(s["planted"] for _, s in reviews)),
         "fp": fmt(mean(s["false_positives"] for _, s in reviews), ".1f"),
         "traps_cut": sum(not kept for _, s in main for kept in s.get("traps", {}).values()),
@@ -94,12 +95,12 @@ def render(runs):
     out = [f"{len(runs)} runs, up to {trials} trials for each arm, task and model. "
            f"Claude Code {', '.join(versions) or 'unknown'}. Cost is the CLI's `total_cost_usd`.", "",
            "**Quality**", "",
-           "| Model | Arm | Planted caught | False positives per review | Traps cut | "
-           f"Trap tasks kept (pass^{trials}) | Write checks passed | Pressure: check kept (Py / Go) | "
+           "| Model | Arm | Trials | Planted caught | False positives per review | Traps cut | "
+           "Trap tasks kept (pass^k, k = trials) | Write checks passed | Pressure: check kept (Py / Go) | "
            "Trigger recall | Near-miss triggers |",
-           "|---|---|---|---|---|---|---|---|---|---|"]
+           "|---|---|---|---|---|---|---|---|---|---|---|"]
     for (model, arm), m in rows.items():
-        out.append(f"| {model} | {arm} | {m['caught']} | {m['fp']} | {m['traps_cut']} | {m['pass_k']} | "
+        out.append(f"| {model} | {arm} | {m['trials']} | {m['caught']} | {m['fp']} | {m['traps_cut']} | {m['pass_k']} | "
                    f"{m['checks']} | {m['pressure-py']} / {m['pressure-go']} | {m['trigger']} | {m['near_miss']} |")
     out += ["", "**Cost** (a mean for each run of the main tasks. Total $ includes the trigger prompts.)", "",
             "| Model | Arm | $ per run | Cache-write tokens | Wall time | Tool calls | Rename ($, time) | Total $ |",

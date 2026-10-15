@@ -58,7 +58,7 @@ blocks a session.
   and then `sed -n 'a,bp'`.
 
 Setup can also install two write hooks (`scripts/write_hooks.py`). They hold
-write mode to `code/write.md`. Each one fails open.
+write mode to the Write rules in `SKILL.md`. Each one fails open.
 
 - **Lint:** after each Edit or Write, the hook runs the linter that the repo
   configures for that file: ruff, ESLint, golangci-lint, or `go vet`. It shows
