@@ -127,8 +127,12 @@ Nothing can start a skill that is off.
    The patch does not change an `"off"` override. `skillOverrides` does not
    apply to plugin skills.
 5. If the user says yes, run the command again with `--write`. Do not write
-   anything without that yes. Tell the user that the change applies to new
-   sessions.
+   anything without that yes.
+6. An agent cannot select a name-only skill from its description. A
+   SessionStart hook gives the agent keywords for each name-only skill. Run
+   `settings.py add-hook --file <the repo>/.claude/settings.local.json --event SessionStart --command 'python3 "$HOME/.claude/skills/shepherd/scripts/status.py" --index --repo "$CLAUDE_PROJECT_DIR"'`.
+   Show the diff. If the user says yes, run it again with `--write`.
+7. Tell the user that the changes apply to new sessions.
 
 ## Unhide: "unhide X", "show the description of X"
 

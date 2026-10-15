@@ -296,6 +296,22 @@ class CatalogUsageTests(Base):
         self.assertEqual(report["patch"], {"enabledPlugins": {"pt@market": False}})
         self.assertEqual(report["app_plugins"], {"eng": 2})
 
+    def test_index_lists_name_only_skills_with_keywords(self):
+        local = self.repo / ".claude" / "settings.local.json"
+        local.parent.mkdir()
+        local.write_text(json.dumps({"skillOverrides": {"grilling": "name-only", "simplify": "name-only",
+                                                        "wizard": "off", "local": "name-only"}}))
+        for base, name, description in ((self.home, "grilling", "Grill the user about a plan, or a decision."),
+                                        (self.repo, "local", "Use when the repo needs a release note.")):
+            (base / ".claude" / "skills" / name).mkdir(parents=True)
+            (base / ".claude" / "skills" / name / "SKILL.md").write_text(
+                f"---\nname: {name}\ndescription: {description}\n---\n")
+        lines = run("status.py", self.home, "--index", "--repo", str(self.repo)).stdout.splitlines()
+        self.assertEqual(lines[1:], ["- grilling: grill, plan, decision", "- local: repo, needs, release, note"])
+
+    def test_index_silent_without_overrides(self):
+        self.assertEqual(run("status.py", self.home, "--index", "--repo", str(self.repo)).stdout, "")
+
     def test_catalog_no_transcript_text(self):
         self.session([listing("grilling"), prompt("SECRET-PROMPT-TEXT"),
                       tool_use("Bash", command="SECRET-COMMAND")])
