@@ -76,42 +76,21 @@ of the session.
 
 ## 3. Self-check before saying done
 
-1. If the diff adds more than 20 lines, do the refine pass. A prompt does
-   not make a diff smaller. A separate pass after the diff exists does.
-   - Start one subagent on the cheapest model (`model: "haiku"`). Do not
-     fork it. A fork gets all of your context and your model.
-   - Give it the prompt below. Fill in the request, the repo path, and the
-     path of this skill.
-   - Apply each cut that it returns. Do not apply a cut that removes wiring
-     from the reach list or an item on the never-cut list in
-     `code/defensive.md`. Report each cut that you do not apply.
-   - Do one pass only.
-
-   ```text
-   Refine pass. Do not edit files.
-   Request: <the user's request>
-   Repo: <repo path>. The diff is `git diff <base>` plus the new files that
-   `git status --short` lists. <base> is the commit before the task.
-   Read the "Shared cut list" section of <shepherd>/SKILL.md, section 2 of
-   <shepherd>/code/write.md, and <shepherd>/code/defensive.md.
-   For each hunk, name the part of the request or the contract item (1 to 4)
-   that it serves. Return only the hunks to revert or to make smaller. For
-   each one, give file:line, the cut-list item or "serves nothing", and the
-   new text or "delete". The behavior for valid inputs must not change.
-   Never cut an item on the never-cut list, wiring, a test that the repo's
-   policy asks for, or a bug fix. If no hunk fails, return "none".
-   ```
-2. Confirm each item on the reach list. Grep every new exported symbol to
+1. Run `git diff`. Read the diff as one design. For each hunk, name the
+   contract item (1 to 4) that it serves. Revert every hunk that serves none.
+2. Apply the shared cut list to every added function, type, and file. Inline
+   or delete each one that fails it.
+3. Confirm each item on the reach list. Grep every new exported symbol to
    prove that other code calls or registers it.
-3. Run the repo's own checks after your last edit: lint, typecheck or build,
+4. Run the repo's own checks after your last edit: lint, typecheck or build,
    and focused tests. Use the scripts that the repo defines. Never append
    `|| true`.
-4. Write the report in this format:
+5. Write the report in this format:
 
 ```text
 Rung: <ladder rung, and why, in one line>
 Changed: <file - what, one line each>
-Lean: -<N> lines cut in the refine pass (or: nothing cut)
+Lean: -<N> lines cut in self-check (or: nothing cut)
 Fixed alongside: <adjacent bug - fix, one line each, or none>
 Follow-ups: <deliberately left out, or none>
 Not checked: <what could not be verified, or none>
@@ -119,4 +98,4 @@ Not checked: <what could not be verified, or none>
 
 If setup installed the write hooks (`context.md`), a lint hook shows the
 findings for each file that you edit. A Stop hook blocks the stop one time
-until steps 1, 3, and 4 are done.
+until step 4 is done.
