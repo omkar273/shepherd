@@ -52,6 +52,7 @@ job, and wire it into the code that is already there. Cut before you add.
 | Planning a multi-file or unclear change | the superpowers `brainstorming` skill, then `writing-plans`. If the repo uses Matt's issue flow, suggest `/to-spec` to the user. Only the user can start it. |
 | A bug or a failing test | the superpowers `systematic-debugging` skill |
 | About to say a change is done | the superpowers `verification-before-completion` skill |
+| No skill in the listing fits the task | the keywords of the name-only skills from the SessionStart hook. If one fits, call it by name. Read only that skill. |
 | "Set up", "update", "add" or "status" for skills | `skills.md` |
 | Installing or removing a pack | `skills.md` |
 | Adding or removing a catalog skill | `curate.md` |

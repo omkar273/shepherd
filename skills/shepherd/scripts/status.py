@@ -6,7 +6,10 @@ over the last 30 days. It also makes a patch for the repo's
 .claude/settings.local.json. The patch sets "name-only" for each user, project,
 and builtin skill that it does not keep. It keeps shepherd, the skills that the
 routing table names, invoked skills, and --keep matches. The patch also turns
-off unused plugins that have a key. --patch prints only the patch."""
+off unused plugins that have a key. --patch prints only the patch.
+
+--index prints keywords for each skill that the repo set to name-only, for a
+SessionStart hook."""
 import argparse
 import datetime
 import fnmatch
@@ -29,6 +32,9 @@ RUNTIMES = {"claude": Path(".claude/skills"), "agents": Path(".agents/skills")}
 USAGE_DAYS = 30
 COMMAND_NAME = re.compile(r"<command-name>/([^<\s]+)</command-name>")
 USAGE_MARKERS = ('"skill_listing"', '"tool_use"', "<command-name>")
+INDEX_KEYWORDS = 6
+STOPWORDS = set("a about an and any are as asks be by for from in is it its of on or that the this to "
+                "use used user uses when wants with you your".split())
 
 
 def remote_head(url):
@@ -70,6 +76,31 @@ def routed_skills():
     text = (Path(__file__).resolve().parents[1] / "SKILL.md").read_text()
     table = text.split("| Situation |", 1)[1].split("\n\n", 1)[0]
     return {"shepherd", *re.findall(r"`([a-z0-9-]+)`", table)}
+
+
+def hidden_index(home, repo):
+    """A SessionStart hook text: keywords for each skill that the repo set to name-only."""
+    try:
+        overrides = json.loads((repo / ".claude" / "settings.local.json").read_text())["skillOverrides"]
+    except (OSError, ValueError, KeyError, TypeError):
+        return ""
+    lines = []
+    for name in sorted(n for n, value in overrides.items() if value == "name-only"):
+        folder = next((base / name for base in (home / ".claude" / "skills", repo / ".claude" / "skills")
+                       if (base / name / "SKILL.md").exists()), None)
+        if not folder:
+            continue
+        try:
+            description = skill_meta.read_skill_frontmatter(folder).get("description", "")
+        except (OSError, ValueError):
+            continue
+        words = re.findall(r"[a-z][a-z0-9-]+", description.lower())
+        keywords = list(dict.fromkeys(w for w in words if w not in STOPWORDS))[:INDEX_KEYWORDS]
+        lines.append(f"- {name}: {', '.join(keywords)}")
+    if not lines:
+        return ""
+    return "\n".join(["These skills show only their names. If one fits the task, call it by name with the Skill tool.",
+                      *lines])
 
 
 def usage_report(home, repo, keep=()):
@@ -149,8 +180,12 @@ def main():
     parser.add_argument("--repo", default=".", help="repo for --catalog (default: here)")
     parser.add_argument("--keep", nargs="+", default=[], help="glob patterns of skills that keep their description")
     parser.add_argument("--patch", action="store_true", help="print only the settings patch")
+    parser.add_argument("--index", action="store_true", help="print the keywords of the repo's name-only skills")
     args = parser.parse_args()
     home = Path(args.home).expanduser()
+    if args.index:
+        print(hidden_index(home, Path(args.repo).resolve()), end="")
+        return
     if args.catalog:
         report = usage_report(home, Path(args.repo).resolve(), args.keep)
         print(json.dumps(report["patch"]) if args.patch else json.dumps(report, indent=2))
