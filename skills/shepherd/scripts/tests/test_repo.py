@@ -74,8 +74,8 @@ class ShepherdTests(unittest.TestCase):
 
 class CatalogRepoTests(unittest.TestCase):
     def router_pack_rows(self):
-        text = (SHEPHERD / "SKILL.md").read_text()
-        section = text.split("## Packs (experimental)", 1)[1].split("\n## ", 1)[0]
+        text = (SHEPHERD / "skills.md").read_text()
+        section = text.split("## Packs:", 1)[1].split("\n## ", 1)[0]
         rows = [l for l in section.splitlines() if l.startswith("| ") and not l.startswith("| Pack ")]
         return [r.split("|")[1].strip() for r in rows]
 

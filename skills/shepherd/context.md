@@ -43,8 +43,8 @@ files, and the next step. Never compact in the middle of a debugging thread.
 
 ## Hooks
 
-Setup can install these hooks. Each hook fails open and never blocks a
-session.
+Setup can install these context hooks. Each hook fails open and never
+blocks a session.
 
 - **Context warning:** past 40% of the context window, and again past 60%,
   the hook shows one line. The line suggests a fresh session or `/compact` at
@@ -56,6 +56,23 @@ session.
 - **No dumps:** the hook denies a plain `cat` or `sed -n '1,$p'` of a text
   file over 300 lines. Use Read with an offset and a limit, or use `grep -n`
   and then `sed -n 'a,bp'`.
+
+Setup can also install two write hooks (`scripts/write_hooks.py`). They hold
+write mode to `code/write.md`. Each one fails open.
+
+- **Lint:** after each Edit or Write, the hook runs the linter that the repo
+  configures for that file: ruff, ESLint, golangci-lint, or `go vet`. It shows
+  only the findings, and the findings on the edited lines come first. It
+  does not show a `go vet` type error, because the build check finds it.
+  Fix the findings that your edit caused. Do not fix old findings in lines
+  that the task does not touch.
+- **Stop:** if the turn wrote a file in the git repo with any tool, the hook
+  blocks the stop one time. It blocks until the repo's checks ran after the
+  last write. A file that changed after the prompt counts. The hook finds
+  the checks in `package.json` scripts, `Makefile` targets, `go.mod`,
+  `Cargo.toml`, and the ruff config. If a check cannot run, name it under
+  `Not checked:`. The next stop always goes through, so the hook cannot
+  loop.
 
 ## Check the meter
 

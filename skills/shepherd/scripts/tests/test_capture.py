@@ -272,6 +272,65 @@ class LessonsTests(Base):
         self.assertGreater(stamp.stat().st_mtime, time.time() - 60)
 
 
+class Step0Tests(Base):
+    def setUp(self):
+        super().setUp()
+        self.env["HOME"] = str(self.tmp / "home")
+        self.repo = self.make_repo("app")
+
+    def write(self, rel, text):
+        path = self.repo / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text)
+
+    def step0(self, cwd=None):
+        result = self.run_capture("step0", cwd=cwd or self.repo)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return result.stdout
+
+    def test_card_lists_checks_lint_config_and_nested_docs(self):
+        self.write("package.json", json.dumps({"scripts": {"lint": "eslint .", "test": "vitest", "dev": "vite"}}))
+        self.write("pnpm-lock.yaml", "")
+        self.write("Makefile", ".PHONY: test\ntest:\n\tgo test ./...\ndeploy:\n\t./deploy.sh\n")
+        self.write(".github/workflows/ci.yml", "jobs:\n  a:\n    steps:\n      - run: go vet ./...\n"
+                                               "      - run: |\n          make lint\n")
+        self.write("eslint.config.js", "")
+        self.write("src/billing/AGENTS.md", "# billing\n")
+        out = self.step0()
+        for line in ("- pnpm run lint: eslint .", "- pnpm run test: vitest", "- make test",
+                     "- CI ci.yml: go vet ./...", "- CI ci.yml: make lint", "Lint config: eslint.config.js",
+                     "Nested AGENTS.md and CLAUDE.md: src/billing/AGENTS.md"):
+            self.assertIn(line, out)
+        self.assertNotIn("run dev", out)
+        self.assertNotIn("make deploy", out)
+
+    def test_card_cached_until_a_root_file_changes(self):
+        self.write("package.json", json.dumps({"scripts": {"lint": "eslint ."}}))
+        self.step0()
+        [cache] = (self.tmp / "home" / ".claude" / "shepherd" / "repo-cards").glob("*.json")
+        cache.write_text(json.dumps({**json.loads(cache.read_text()), "text": "from cache"}))
+        self.assertEqual(self.step0().strip(), "from cache")
+        self.write("package.json", json.dumps({"scripts": {"lint": "eslint .", "test": "vitest run"}}))
+        self.assertIn("vitest run", self.step0())
+
+    def test_root_agents_md_not_imported_is_named(self):
+        self.write("AGENTS.md", "# rules\n")
+        self.write("CLAUDE.md", "# notes\n")
+        self.assertIn("Root AGENTS.md is not loaded", self.step0())
+        self.write("CLAUDE.md", "@AGENTS.md\n")
+        self.assertNotIn("Root AGENTS.md is not loaded", self.step0())
+
+    def test_outside_a_repo(self):
+        plain = self.tmp / "plain"
+        plain.mkdir()
+        self.assertIn("not a git repo", self.step0(cwd=plain))
+
+    def test_lessons_follow_the_card(self):
+        (self.root / "lessons" / "global.md").write_text("- Global rule. (2026-01-01, seen 2x)\n")
+        out = self.step0()
+        self.assertLess(out.index("Repo card"), out.index("- Global rule."))
+
+
 class HookCommandTests(Base):
     """Runs the frontmatter hook commands the way Claude Code does: sh -c, JSON on stdin."""
 

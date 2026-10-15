@@ -10,6 +10,7 @@ from pathlib import Path
 SCRIPT = Path(__file__).resolve().parent.parent / "link_skills.py"
 SKILLS_DIR = Path(__file__).resolve().parents[3]
 SKILL_COUNT = sum(1 for p in SKILLS_DIR.iterdir() if (p / "SKILL.md").exists())
+LANG = (SKILLS_DIR / "shepherd" / "lang").resolve()
 
 
 def run(home, *args):
@@ -80,7 +81,7 @@ class LinkSkillsTests(unittest.TestCase):
         before = snapshot(self.home)
         report = run(self.home, "--dry-run", "--retire")
         self.assertEqual(snapshot(self.home), before)
-        self.assertEqual(len(report["linked"]), 2 * SKILL_COUNT - 1)
+        self.assertEqual(len(report["linked"]), 2 * SKILL_COUNT)
         self.assertIn("claude/research", report["backed_up"])
 
     def test_second_run_noop(self):
@@ -88,7 +89,24 @@ class LinkSkillsTests(unittest.TestCase):
         report = run(self.home, "--retire")
         for key in ("linked", "backed_up", "pruned", "retired"):
             self.assertEqual(report[key], [], key)
-        self.assertEqual(len(report["unchanged"]), 2 * SKILL_COUNT)
+        self.assertEqual(len(report["unchanged"]), 2 * SKILL_COUNT + 1)
+
+    def test_lang_rules_linked(self):
+        report = run(self.home)
+        rules = self.home / ".claude" / "rules" / "shepherd"
+        self.assertEqual(Path(os.path.realpath(rules)), LANG)
+        self.assertIn("rules/shepherd", report["linked"])
+        for path in LANG.glob("*.md"):
+            self.assertTrue(path.read_text().startswith("---\npaths:\n"), path)
+
+    def test_rules_in_the_way_backed_up(self):
+        rules = self.home / ".claude" / "rules" / "shepherd"
+        rules.mkdir(parents=True)
+        (rules / "mine.md").write_text("mine")
+        report = run(self.home)
+        self.assertEqual(Path(os.path.realpath(rules)), LANG)
+        self.assertIn("rules/shepherd", report["backed_up"])
+        self.assertTrue(any(p.name == "mine.md" for p in self.backups()))
 
     def test_chained_link_backup_stays_valid(self):
         (self.claude / "lean").mkdir(parents=True)

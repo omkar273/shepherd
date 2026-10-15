@@ -1,3 +1,13 @@
+---
+paths:
+  - "**/*.ts"
+  - "**/*.tsx"
+  - "**/*.mts"
+  - "**/*.cts"
+  - "**/*.jsx"
+  - "**/*.svelte"
+---
+
 # TypeScript
 
 Run the repo's lint and typecheck scripts (for example `lint`, `check-types`,

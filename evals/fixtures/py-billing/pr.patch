@@ -1,0 +1,186 @@
+From 1a22e95cc1b8fc2be31521b9fe3cfb6bf1afed33 Mon Sep 17 00:00:00 2001
+From: teammate <teammate@example.com>
+Date: Thu, 15 Oct 2026 10:00:00 +0530
+Subject: [PATCH] feat: refund paid invoices
+
+---
+ billing/errors.py        |  4 ++++
+ billing/http.py          | 17 +++++++++++++++++
+ billing/money.py         |  3 ++-
+ billing/refund_policy.py | 14 ++++++++++++++
+ billing/service.py       | 40 ++++++++++++++++++++++++++++++++++++++--
+ tests/test_billing.py    | 15 +++++++++++++++
+ 6 files changed, 90 insertions(+), 3 deletions(-)
+ create mode 100644 billing/refund_policy.py
+
+diff --git a/billing/errors.py b/billing/errors.py
+index 896467a..111d0f3 100644
+--- a/billing/errors.py
++++ b/billing/errors.py
+@@ -12,3 +12,7 @@ class InvalidState(BillingError):
+ 
+ class InvalidRequest(BillingError):
+     pass
++
++
++class RefundTooLarge(BillingError):
++    pass
+diff --git a/billing/http.py b/billing/http.py
+index 088251d..b38d090 100644
+--- a/billing/http.py
++++ b/billing/http.py
+@@ -21,12 +21,23 @@ def parse_void(body: dict) -> str:
+     return reason
+ 
+ 
++def parse_refund(body: dict) -> tuple[int, str]:
++    amount = body.get("amount_cents")
++    request_id = body.get("request_id")
++    if not isinstance(amount, int) or isinstance(amount, bool) or amount <= 0:
++        raise InvalidRequest("amount_cents must be a positive integer")
++    if not isinstance(request_id, str) or not request_id:
++        raise InvalidRequest("request_id is required")
++    return amount, request_id
++
++
+ def render(invoice) -> dict:
+     return {
+         "id": invoice.id,
+         "status": invoice.status.value,
+         "total": fmt_cents(invoice.total_cents),
+         "paid": fmt_cents(invoice.paid_cents),
++        "refunded": fmt_cents(invoice.refunded_cents),
+     }
+ 
+ 
+@@ -44,6 +55,12 @@ def handle_void(service: InvoiceService, ctx: Context, invoice_id: str, body: di
+     return {**render(service.void(ctx, invoice_id, reason)), "previous": previous}
+ 
+ 
++def handle_refund(service: InvoiceService, ctx: Context, invoice_id: str, body: dict) -> dict:
++    amount, request_id = parse_refund(body)
++    service.get(ctx, invoice_id)
++    return render(service.refund(ctx, invoice_id, amount, request_id))
++
++
+ ROUTES = {
+     ("GET", "invoice"): handle_get,
+     ("POST", "invoice/pay"): handle_pay,
+diff --git a/billing/money.py b/billing/money.py
+index 58baa09..748d9bc 100644
+--- a/billing/money.py
++++ b/billing/money.py
+@@ -1,2 +1,3 @@
+ def fmt_cents(cents: int) -> str:
+-    return f"{cents // 100}.{cents % 100:02d}"
++    whole, part = divmod(cents, 100)
++    return "%d.%02d" % (whole, part)
+diff --git a/billing/refund_policy.py b/billing/refund_policy.py
+new file mode 100644
+index 0000000..1ee1394
+--- /dev/null
++++ b/billing/refund_policy.py
+@@ -0,0 +1,14 @@
++from abc import ABC, abstractmethod
++
++from billing.models import Invoice
++
++
++class RefundPolicy(ABC):
++    @abstractmethod
++    def max_refund(self, invoice: Invoice) -> int:
++        ...
++
++
++class DefaultRefundPolicy(RefundPolicy):
++    def max_refund(self, invoice: Invoice) -> int:
++        return invoice.paid_cents - invoice.refunded_cents
+diff --git a/billing/service.py b/billing/service.py
+index 8805e19..063b11b 100644
+--- a/billing/service.py
++++ b/billing/service.py
+@@ -1,13 +1,19 @@
+-from billing.errors import InvalidRequest, InvalidState, NotFound
++import logging
++
++from billing.errors import InvalidRequest, InvalidState, NotFound, RefundTooLarge
+ from billing.models import Context, Invoice, Status
++from billing.refund_policy import DefaultRefundPolicy, RefundPolicy
+ from billing.repo import InvoiceRepo
+ 
++log = logging.getLogger(__name__)
++
+ MAX_REASON = 500
+ 
+ 
+ class InvoiceService:
+-    def __init__(self, repo: InvoiceRepo):
++    def __init__(self, repo: InvoiceRepo, policy: RefundPolicy | None = None):
+         self.repo = repo
++        self.policy = policy or DefaultRefundPolicy()
+ 
+     def get(self, ctx: Context, invoice_id: str) -> Invoice:
+         invoice = self.repo.get(invoice_id)
+@@ -38,3 +44,33 @@ class InvoiceService:
+             invoice.void_reason = reason.strip()
+             self.repo.save(invoice)
+             return invoice
++
++    def _get_invoice(self, invoice_id: str) -> Invoice:
++        return self.repo.get(invoice_id)
++
++    def refund(self, ctx: Context, invoice_id: str, amount_cents: int, request_id: str,
++               notify: bool = False) -> Invoice:
++        if not isinstance(amount_cents, int) or amount_cents <= 0:
++            raise InvalidRequest("amount must be a positive integer")
++        try:
++            with self.repo.lock(invoice_id):
++                invoice = self._get_invoice(invoice_id)
++                if invoice is None:
++                    raise NotFound(invoice_id)
++                if invoice.tenant_id != ctx.tenant_id:
++                    raise NotFound(invoice_id)
++                if request_id in invoice.refund_ids:
++                    return invoice
++                if invoice.status != Status.PAID:
++                    raise InvalidState(f"cannot refund a {invoice.status.value} invoice")
++                if amount_cents > self.policy.max_refund(invoice):
++                    raise RefundTooLarge(f"refund exceeds the {self.policy.max_refund(invoice)} cents left")
++                # refund the invoice
++                invoice.refunded_cents += amount_cents
++                invoice.refund_ids.append(request_id)
++                self.repo.save(invoice)
++                if notify:
++                    log.info("would notify customer %s about refund", invoice.customer_id)
++                return invoice
++        except Exception:
++            raise
+diff --git a/tests/test_billing.py b/tests/test_billing.py
+index b9fc584..31c57ea 100644
+--- a/tests/test_billing.py
++++ b/tests/test_billing.py
+@@ -51,6 +51,21 @@ class HttpTests(unittest.TestCase):
+         self.assertEqual(status, 409)
+ 
+ 
++class RefundTests(unittest.TestCase):
++    def test_refund_part(self):
++        service = service_with(finalized())
++        service.pay(ACME, "inv1")
++        invoice = service.refund(ACME, "inv1", 250, "r1")
++        self.assertEqual(invoice.refunded_cents, 250)
++
++    def test_refund_same_request_twice(self):
++        service = service_with(finalized())
++        service.pay(ACME, "inv1")
++        service.refund(ACME, "inv1", 250, "r1")
++        invoice = service.refund(ACME, "inv1", 250, "r1")
++        self.assertEqual(invoice.refunded_cents, 250)
++
++
+ class WorkerTests(unittest.TestCase):
+     def test_void_job(self):
+         service = service_with(finalized())
+-- 
+2.55.0
+

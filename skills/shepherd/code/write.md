@@ -82,8 +82,9 @@ of the session.
    or delete each one that fails it.
 3. Confirm each item on the reach list. Grep every new exported symbol to
    prove that other code calls or registers it.
-4. Run the repo's own checks: lint, typecheck or build, and focused tests.
-   Use the scripts that the repo defines. Never append `|| true`.
+4. Run the repo's own checks after your last edit: lint, typecheck or build,
+   and focused tests. Use the scripts that the repo defines. Never append
+   `|| true`.
 5. Write the report in this format:
 
 ```text
@@ -94,3 +95,7 @@ Fixed alongside: <adjacent bug - fix, one line each, or none>
 Follow-ups: <deliberately left out, or none>
 Not checked: <what could not be verified, or none>
 ```
+
+If setup installed the write hooks (`context.md`), a lint hook shows the
+findings for each file that you edit. A Stop hook blocks the stop one time
+until step 4 is done.
