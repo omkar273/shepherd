@@ -57,6 +57,9 @@ score the output against `answer-key.md`.
 | 2026-10-11 | lean (predecessor) | 12/12 | 15/15 | 0 | Write diffs −60% (Go 310→125, TS 132→59) |
 | 2026-10-12 | shepherd, first description | n/a | n/a | 1 | Did not trigger in 5/5 runs; lost reviews to the built-in code-review skill |
 | 2026-10-12 | shepherd, fixed description | 12/12 | 15/15 | 0 | Triggered in all runs; routing loaded only matching language files |
+| 2026-10-16 | no skill | 11.3/12 | 14.0/15 | 5 of 6 runs | Sonnet, 3 runs each, LLM judge, traps checked by hand. Feature: atomic in 0 of 3 |
+| 2026-10-16 | shepherd 1.9, skill only | 12.0/12 | 15.0/15 | 1 of 12 runs | 6 runs each. Feature: atomic in 0 of 6, `code/write.md` read in 0 of 6 |
+| 2026-10-16 | shepherd 1.10, full setup | 11.8/12 | 15.0/15 | 0 of 9 runs | Card in CLAUDE.md, path rules, Step 0 block. Reviews 16-20% cheaper. Feature: atomic in 3 of 3, 36% more cost |
 
 ## Adding a case
 

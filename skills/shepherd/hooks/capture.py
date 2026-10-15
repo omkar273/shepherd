@@ -5,12 +5,16 @@ turn     hook: append the prompt or the reply in stdin JSON to inbox/turns.jsonl
          and remind the agent to record a prompt that looks like a correction
 signal   record a correction; a clear repo lesson goes to lessons/repos/<slug>.md
 lessons  print the global and repo lessons; pull in the background at most hourly
+step0    print the repo card (check commands, lint config, nested AGENTS.md), then
+         the lessons; the card is cached until HEAD, the index, or a root file changes
 sync     pull or push, run detached by the commands above
 
-Runs only from a full clone. Never calls a model; the only network use is the
-detached git pull and push, each cut off after 5 seconds."""
+Learning runs only from a full clone; step0 prints the repo card anywhere.
+Never calls a model; the only network use is the detached git pull and push,
+each cut off after 5 seconds."""
 import argparse
 import datetime
+import hashlib
 import json
 import os
 import re
@@ -32,7 +36,15 @@ CORRECTION = re.compile(
     r"|undo|revert|restore|should(n't| not)? have|(don't|do not) (cut|remove|drop|flag)|keep (it|that|this|the))\b",
     re.IGNORECASE)
 REMINDER = ("shepherd: if this message corrects your work, record it with "
-            "`capture.py signal` before you reply (SKILL.md, Learning).")
+            "`capture.py signal` before you reply (learn.md, Record a correction).")
+CARD_DIR = Path.home() / ".claude" / "shepherd" / "repo-cards"
+ROOT_FILES = ("package.json", "Makefile", "justfile", "pyproject.toml", "CLAUDE.md", "AGENTS.md")
+LOCKFILES = (("pnpm-lock.yaml", "pnpm"), ("yarn.lock", "yarn"), ("bun.lock", "bun"), ("bun.lockb", "bun"))
+CHECK_NAME = re.compile(r"(^|[-_:.])(lint|tests?|check|typecheck|types|vet|fmt|format|build|ci|verify|knip)", re.I)
+LINT_CONFIG = re.compile(
+    r"^(\.?eslint[\w.]*|biome\.jsonc?|\.golangci\.ya?ml|\.?ruff\.toml|\.prettierrc[\w.]*|prettier\.config\.\w+"
+    r"|tsconfig[\w.]*\.json|\.flake8|mypy\.ini|\.stylelintrc[\w.]*|rustfmt\.toml|clippy\.toml|deno\.jsonc?)$")
+CARD_LIMIT = 12
 LINE = re.compile(r"^- (?P<lesson>.+)\. \((?P<date>\d{4}-\d\d-\d\d), seen (?P<n>\d+)x\)$")
 
 _NEVER_CUT = (r"(auth|authn|authz|authentication|authorization|permissions?|ownership|owner checks?"
@@ -220,6 +232,91 @@ def lessons(root, repo_dir):
         print("\n\n".join(parts))
 
 
+def read(path):
+    try:
+        return path.read_text(errors="replace")
+    except OSError:
+        return ""
+
+
+def check_commands(top, names):
+    checks = []
+    if "package.json" in names:
+        try:
+            scripts = json.loads(read(top / "package.json")).get("scripts") or {}
+        except (ValueError, AttributeError):
+            scripts = {}
+        runner = next((tool for lock, tool in LOCKFILES if lock in names), "npm")
+        checks += [f"{runner} run {name}: {str(cmd)[:80]}" for name, cmd in scripts.items() if CHECK_NAME.search(name)]
+    for name, tool, target in (("Makefile", "make", r"^([A-Za-z_][\w.-]*)\s*:(?!=)"),
+                               ("justfile", "just", r"^([A-Za-z_][\w-]*)[^:\n=]*:(?!=)")):
+        if name in names:
+            found = dict.fromkeys(re.findall(target, read(top / name), re.M))
+            checks += [f"{tool} {t}" for t in found if CHECK_NAME.search(t)]
+    for workflow in sorted((top / ".github" / "workflows").glob("*.y*ml")):
+        lines = read(workflow).splitlines()
+        for i, line in enumerate(lines):
+            if match := re.match(r"^\s*(?:-\s*)?run:\s*(.*)$", line):
+                cmd = match[1].strip()
+                if cmd in ("|", ">", "|-", ">-"):
+                    cmd = next((l.strip() for l in lines[i + 1:] if l.strip()), "")
+                checks.append(f"CI {workflow.name}: {cmd[:100]}")
+    return list(dict.fromkeys(checks))
+
+
+def build_card(top):
+    names = set(os.listdir(top))
+    checks = check_commands(top, names)
+    lint = sorted(n for n in names if LINT_CONFIG.match(n))
+    tools = re.findall(r"^\[tool\.(ruff|mypy|pyright|pytest[\w.]*|black|isort)\]", read(top / "pyproject.toml"), re.M)
+    lint += [f"pyproject.toml [tool.{t}]" for t in tools]
+    listed = git("ls-files", "-z", "--cached", "--others", "--exclude-standard", "--",
+                 ":(glob)**/AGENTS.md", ":(glob)**/CLAUDE.md", cwd=top).stdout.split("\0")
+    nested = sorted({p for p in listed if "/" in p})
+    skills = sorted(p.parent.name for p in (top / ".agents" / "skills").glob("*/SKILL.md"))
+    lines = [f"Repo card for {top} (shepherd Step 0):", "Checks:"]
+    lines += [f"- {c}" for c in checks[:CARD_LIMIT]] or ["- none found: read the repo docs"]
+    if len(checks) > CARD_LIMIT:
+        lines.append(f"- and {len(checks) - CARD_LIMIT} more")
+    lines.append(f"Lint config: {', '.join(lint) or 'none found'}")
+    lines.append("Nested AGENTS.md and CLAUDE.md: " + (", ".join(nested[:30]) or "none"))
+    if skills:
+        lines.append(f"Repo skills in .agents/skills: {', '.join(skills)}")
+    if {"AGENTS.md", "CLAUDE.md"} <= names and "@AGENTS.md" not in read(top / "CLAUDE.md"):
+        lines.append("Root AGENTS.md is not loaded: CLAUDE.md does not import it. Read it.")
+    return "\n".join(lines)
+
+
+def repo_card(repo_dir):
+    """The repo card, from the cache when HEAD, the index, and the root files are unchanged."""
+    out = git("rev-parse", "--show-toplevel", "--absolute-git-dir", "HEAD", cwd=repo_dir).stdout.split("\n")
+    if len(out) < 3 or not out[0]:
+        return "Repo card: not a git repo. Read the repo docs."
+    top, git_dir = Path(out[0]), Path(out[1])
+    stamps = [out[2]]
+    for path in (git_dir / "index", top / ".github" / "workflows", *(top / n for n in ROOT_FILES)):
+        try:
+            stat = path.stat()
+            stamps.append(f"{path}:{stat.st_mtime_ns}:{stat.st_size}")
+        except OSError:
+            stamps.append(f"{path}:-")
+    key = hashlib.sha1("\n".join(stamps).encode()).hexdigest()
+    cache = CARD_DIR / f"{hashlib.sha1(str(top).encode()).hexdigest()[:16]}.json"
+    try:
+        cached = json.loads(cache.read_text())
+        if cached["key"] == key:
+            return cached["text"]
+    except (OSError, ValueError, KeyError, TypeError):
+        pass
+    text = build_card(top)
+    try:
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        cache.write_text(json.dumps({"key": key, "text": text}))
+    except OSError:
+        pass
+    return text
+
+
 def main():
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--root", type=Path, default=ROOT)
@@ -235,6 +332,8 @@ def main():
     sig.add_argument("--repo-dir", default=".")
     les = sub.add_parser("lessons", parents=[common])
     les.add_argument("--repo-dir", default=".")
+    step0 = sub.add_parser("step0", parents=[common])
+    step0.add_argument("--repo-dir", default=".")
     syn = sub.add_parser("sync", parents=[common])
     syn.add_argument("direction", choices=["pull", "push"])
     args = parser.parse_args()
@@ -249,6 +348,9 @@ def main():
     elif args.action == "signal":
         signal(root, args)
     elif args.action == "lessons":
+        lessons(root, args.repo_dir)
+    elif args.action == "step0":
+        print(repo_card(args.repo_dir))
         lessons(root, args.repo_dir)
     else:
         sync(root, args.direction)

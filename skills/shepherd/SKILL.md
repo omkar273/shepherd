@@ -1,6 +1,7 @@
 ---
 name: shepherd
-description: Use when you write, change, or review code or docs in a repo. That includes a feature, a fix, a refactor, a debug session, and a plan for a multi-file change. Use it to review a teammate's pull request, branch, or diff (before or with code-review), and before you say a change is done. Use it before you add a helper, wrapper, interface, layer, option, defensive check, or test that the task did not ask for. Use it to set up, update, add, or check skills.
+description: Use when you write, change, or review code or docs in a repo, and your CLAUDE.md has no shepherd card. That includes a feature, a fix, a refactor, a review of a pull request, branch, or diff, and a plan for a multi-file change. Use it before you add a helper, wrapper, interface, layer, option, defensive check, or test that the task did not ask for. With the card, use it only for an audit, a multi-file plan, a correction from the user, SEO work, or a long session. Always use it to set up, update, add, prune, or check skills.
+allowed-tools: Bash(python3 "${CLAUDE_SKILL_DIR}/hooks/capture.py" *)
 hooks:
   UserPromptSubmit:
     - hooks:
@@ -20,14 +21,19 @@ job, and wire it into the code that is already there. Cut before you add.
 
 ## Step 0, every time
 
-1. Read the repo's root `CLAUDE.md` / `AGENTS.md`. Then read each `AGENTS.md`
-   on the path from the root to each directory in the change. Then read the
-   lint config and the check scripts (Makefile, `package.json` scripts, CI
-   workflow). Repo rules win over this skill.
-2. Run `python3 <shepherd>/hooks/capture.py lessons` (`<shepherd>` is the
-   folder of this skill). Do what it prints. The order of priority is: repo
-   docs, then the never-cut list in `code/defensive.md`, then lessons, then
-   this skill.
+```!
+python3 "${CLAUDE_SKILL_DIR}/hooks/capture.py" step0 || true
+```
+
+1. The block above is the repo card and the lessons. If it shows no repo card,
+   run `python3 <shepherd>/hooks/capture.py step0` from the repo
+   (`<shepherd>` is the folder of this skill). Claude Code loads the root
+   `CLAUDE.md` or `AGENTS.md`. Do not read it again. Before the first edit,
+   read each nested `AGENTS.md` or `CLAUDE.md` from the card that is on the
+   path to the change and not in context. Use the checks from the card. Repo
+   rules win over this skill.
+2. Do what the lessons say. The order of priority is: repo docs, then the
+   never-cut list in `code/defensive.md`, then lessons, then this skill.
 3. Docs go out of date. Before you use a file, helper, or mechanism that a doc
    names, make sure that it is in the code.
 4. Recorded decisions (ADRs, architecture notes) win over the cut list. Do not
@@ -54,10 +60,11 @@ job, and wire it into the code that is already there. Cut before you add.
 | About to say a change is done | the superpowers `verification-before-completion` skill |
 | No skill in the listing fits the task | the keywords of the name-only skills from the SessionStart hook. If one fits, call it by name. Read only that skill. |
 | "Set up", "update", "add" or "status" for skills | `skills.md` |
-| Installing or removing a pack | `skills.md` |
+| Installing or removing a pack, or a task that fits a pack: planning, productivity, design, reverse engineering, video, writing, SEO, simulation | `skills.md`, Packs |
 | Adding or removing a catalog skill | `curate.md` |
 | SEO or AEO work on a site or product | `seo.md` |
 | A long, slow, or messy session | `context.md` |
+| The user corrects your work | `learn.md`, Record a correction. Do this before you reply. |
 | "Consolidate shepherd lessons", "revert shepherd <commit>" | `learn.md` |
 
 If a superpowers skill above is not installed, do its step yourself:
@@ -67,8 +74,11 @@ If a superpowers skill above is not installed, do its step yourself:
 - Before you say done, run the checks and read their output.
 
 Read the `lang/` file before you write the first line in that language. Read
-only the `lang/` files that match the change. If a language has no file, use
-the code files and the repo's own docs. Do not make up rules for a language.
+only the `lang/` files that match the change. Setup installs the `lang/` files
+as path rules, so Claude Code loads each one when you open a matching file. If
+a `lang/` file is in context, do not read it again. If a language has no file,
+use the code files and the repo's own docs. Do not make up rules for a
+language.
 
 ## Always on
 
@@ -81,47 +91,6 @@ the code files and the repo's own docs. Do not make up rules for a language.
 - Use Read to view source and Grep to search it. Do not use `cat` or `sed`
   for this.
 - Do not read a file again just after you edit it.
-
-## Learning
-
-If the user corrects your work, record the correction before you reply. Run
-this command from inside the repo:
-`python3 <shepherd>/hooks/capture.py signal --kind <kind> --rule "<shepherd rule>" --evidence "<file:line> <one-line paraphrase>"`
-
-- `reject`: the user rejects or edits a finding before you post it. Or the
-  user says that you kept or cut a check, abstraction, or file by mistake.
-- `revert`: the user reverts a cut.
-- `restore`: you put back a removed check because a test failed.
-- `accept`: the user tells you to post a review. The evidence names the
-  findings that you posted and the findings that you dropped.
-
-Do not put secrets or code in the evidence. If a reject, revert, or restore is
-clear and specific to the repo, add `--lesson "<what to do in this repo, and why>"`.
-To count a lesson again, pass its exact text. If the lesson makes the
-never-cut list weaker, add `--flag never-cut` instead. Then tell the user that
-the lesson does not apply.
-
-Show the user all of the script output. If the output has a full lessons
-file, show that file too.
-
-## Packs (experimental)
-
-Do this only in a full clone (`<shepherd>/../../catalog/catalog.json` exists).
-If the task fits a pack below and `catalog.py list` shows it as not
-installed, offer it once in each session. Say: "The <pack> pack (<skills>) can
-help here. Install it?" Install the pack only if the user says yes. Follow
-`skills.md` to install it.
-
-| Pack | Cues | Skills |
-|---|---|---|
-| planning | spec, tickets, issue tracker, multi-session effort, triage | `/to-spec`, `/to-tickets`, `/implement`, `/wayfinder`, `/triage` and 5 more |
-| productivity | handoff, teach me, questionnaire, retro, grill me | `/grill-me`, `/handoff`, `/teach`, `/to-questionnaire`, `/wait-what`, `/retro` |
-| design | landing page, new UI, redesign, visual style, scroll animation, UI polish, animation, layout | `frontend-design`, `scroll-craft` (generated assets need a kie.ai key), `emil-design-eng`, `better-layout` |
-| reverse-engineering | decompile, shipped binary, APK, Electron app internals, firmware | `reverse-engineer-anything` (needs the REA MCP server or `rea` CLI) |
-| video | make a video, promo or explainer video, captions, motion graphics, render video | `hyperframes` (installs its workflows on first use with `npx hyperframes`) |
-| writing | humanize, sounds like AI, AI-sounding text, rewrite this draft | `humanizer` |
-| seo | SEO, AEO, keyword research, site audit, AI visibility, structured data | `seo-audit`, `keyword-research`, `ai-visibility-audit` and 9 more OpenSEO skills (need the OpenSEO MCP server), `seo-aeo-best-practices`, `seo-aeo-audit` |
-| simulation | simulate public reaction, market sentiment, swarm simulation, MiroFish | `mirofish-offline-simulation` (needs local Neo4j and Ollama) |
 
 ## The ladder
 
