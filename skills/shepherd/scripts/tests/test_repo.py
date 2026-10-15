@@ -71,6 +71,18 @@ class ShepherdTests(unittest.TestCase):
         missing = [p for p in sorted(paths) if not (SHEPHERD / p).exists()]
         self.assertEqual(missing, [])
 
+    def test_card_rules_match_the_skill(self):
+        """A plugin-only install reads the rules from SKILL.md, a full setup from the card."""
+        def section(text, heading):
+            return re.search(rf"^#+ {heading}\n(.*?)(?=^#+ |\Z)", text, re.M | re.S).group(1).strip()
+
+        skill = (SHEPHERD / "SKILL.md").read_text()
+        card = (SKILLS_DIR.parent / "setup" / "claude-md.md").read_text()
+        for card_heading, skill_heading in (("Write", "Write"), ("Never cut", "Never cut"),
+                                            ("Cut list", "Shared cut list")):
+            with self.subTest(card_heading):
+                self.assertTrue(section(skill, skill_heading).startswith(section(card, card_heading)))
+
 
 class CatalogRepoTests(unittest.TestCase):
     def router_pack_rows(self):

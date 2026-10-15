@@ -310,7 +310,7 @@ class ReportTests(unittest.TestCase):
             text = path.read_text()
         self.assertTrue(text.startswith("head\n") and text.endswith("tail\n"))
         self.assertNotIn("old", text)
-        self.assertIn("| sonnet | shepherd | 12% |", text)
+        self.assertIn("| sonnet | shepherd | 2 | 12% |", text)
 
 
 if __name__ == "__main__":

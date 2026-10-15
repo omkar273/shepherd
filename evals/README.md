@@ -110,25 +110,27 @@ caught and cut decisions (one item in 200). The false-positive count differs by
 
 <!-- bench:start -->
 
-108 runs, up to 1 trials for each arm, task and model. Claude Code 2.1.287. Cost is the CLI's `total_cost_usd`.
+239 runs, up to 3 trials for each arm, task and model. Claude Code 2.1.287. Cost is the CLI's `total_cost_usd`.
 
 **Quality**
 
-| Model | Arm | Planted caught | False positives per review | Traps cut | Trap tasks kept (pass^1) | Write checks passed | Pressure: check kept (Py / Go) | Trigger recall | Near-miss triggers |
-|---|---|---|---|---|---|---|---|---|---|
-| sonnet | baseline | 95% | 0.3 | 2 | 5/7 | 94% | 1/1 / 0/1 | n/a | n/a |
-| sonnet | shepherd | 100% | 0.0 | 1 | 6/7 | 94% | 1/1 / 0/1 | 8/10 | 0/5 |
-| sonnet | karpathy | 95% | 0.3 | 2 | 5/7 | 94% | 1/1 / 0/1 | 1/7 | 0/5 |
-| sonnet | superpowers | 86% | 0.3 | 2 | 5/7 | 94% | 1/1 / 0/1 | 6/10 | 1/5 |
-| sonnet | anthropic | 86% | 0.3 | 2 | 5/7 | 88% | 1/1 / 0/1 | n/a | n/a |
-| sonnet | pocock | 100% | 0.3 | 2 | 5/7 | 94% | 1/1 / 0/1 | 1/3 | 0/5 |
+| Model | Arm | Trials | Planted caught | False positives per review | Traps cut | Trap tasks kept (pass^k, k = trials) | Write checks passed | Pressure: check kept (Py / Go) | Trigger recall | Near-miss triggers |
+|---|---|---|---|---|---|---|---|---|---|---|
+| sonnet | baseline | 3 | 95% | 0.3 | 6 | 5/7 | 94% | 3/3 / 0/3 | n/a | n/a |
+| sonnet | shepherd | 3 | 96% | 0.0 | 0 | 7/7 | 98% | 3/3 / 3/3 | 27/30 | 0/15 |
+| sonnet | shepherd-card | 3 | 99% | 0.0 | 0 | 7/7 | 100% | 3/3 / 3/3 | 3/3 | 0/15 |
+| sonnet | karpathy | 1 | 95% | 0.3 | 2 | 5/7 | 94% | 1/1 / 0/1 | 1/7 | 0/5 |
+| sonnet | superpowers | 1 | 86% | 0.3 | 2 | 5/7 | 94% | 1/1 / 0/1 | 6/10 | 1/5 |
+| sonnet | anthropic | 1 | 86% | 0.3 | 2 | 5/7 | 88% | 1/1 / 0/1 | n/a | n/a |
+| sonnet | pocock | 1 | 100% | 0.3 | 2 | 5/7 | 94% | 1/1 / 0/1 | 1/3 | 0/5 |
 
 **Cost** (a mean for each run of the main tasks. Total $ includes the trigger prompts.)
 
 | Model | Arm | $ per run | Cache-write tokens | Wall time | Tool calls | Rename ($, time) | Total $ |
 |---|---|---|---|---|---|---|---|
-| sonnet | baseline | 0.09 | 12,495 | 26s | 4 | $0.10, 23s | 0.73 |
-| sonnet | shepherd | 0.15 | 20,073 | 44s | 13 | $0.11, 27s | 1.93 |
+| sonnet | baseline | 0.10 | 13,416 | 27s | 6 | $0.09, 21s | 2.40 |
+| sonnet | shepherd | 0.15 | 19,923 | 36s | 10 | $0.10, 23s | 5.62 |
+| sonnet | shepherd-card | 0.15 | 19,509 | 40s | 13 | $0.11, 22s | 6.00 |
 | sonnet | karpathy | 0.09 | 12,681 | 29s | 5 | $0.09, 24s | 1.32 |
 | sonnet | superpowers | 0.15 | 19,430 | 50s | 10 | $0.11, 38s | 2.02 |
 | sonnet | anthropic | 0.23 | 31,356 | 48s | 10 | $0.21, 86s | 1.83 |
@@ -138,8 +140,9 @@ caught and cut decisions (one item in 200). The false-positive count differs by
 
 | Model | Arm | Go review caught | TS review caught | Python review caught | Lines added (TS / Go write) |
 |---|---|---|---|---|---|
-| sonnet | baseline | 11.0/12 | 14.0/15 | 10.0/10 | 74 / 91 |
-| sonnet | shepherd | 12.0/12 | 15.0/15 | 10.0/10 | 78 / 77 |
+| sonnet | baseline | 11.0/12 | 14.3/15 | 10.0/10 | 79 / 102 |
+| sonnet | shepherd | 11.0/12 | 15.0/15 | 9.7/10 | 82 / 89 |
+| sonnet | shepherd-card | 11.7/12 | 15.0/15 | 10.0/10 | 83 / 88 |
 | sonnet | karpathy | 11.0/12 | 14.0/15 | 10.0/10 | 82 / 101 |
 | sonnet | superpowers | 11.0/12 | 12.0/15 | 9.0/10 | 81 / 154 |
 | sonnet | anthropic | 11.0/12 | 11.0/15 | 10.0/10 | 98 / 80 |
@@ -147,22 +150,25 @@ caught and cut decisions (one item in 200). The false-positive count differs by
 
 <!-- bench:end -->
 
-The first run is one trial for each arm on Sonnet (108 runs):
+The `baseline`, `shepherd`, and `shepherd-card` rows are 3 trials of
+shepherd 1.13 on Sonnet. The other rows are the first run: one trial of each
+pack, with shepherd 1.9.
 
-- Every arm without shepherd asked the author of the Go PR to delete the
-  tenant check, because the repository also scopes by tenant. Shepherd kept
-  the check.
-- Shepherd and the `pocock` skill caught all planted problems. Shepherd had no
-  false positives.
-- When the prompt told the agent to delete the same Go tenant check, every arm
-  deleted it. Shepherd did not load for that prompt. It also did not load for
-  2 of the 10 trigger prompts.
-- No arm made the credit update in `ts-write` atomic.
-- Shepherd costs 1.7 times the baseline for each run, and it takes 1.7 times
-  the wall time.
+- Shepherd, in both arms, cut no trap in 3 trials. The baseline asked to
+  delete the Go tenant check in 3 of 3 reviews.
+- When the prompt told the agent to delete the same tenant check, both
+  shepherd arms kept it in 3 of 3 runs. They said which never-cut rule
+  applies and asked one time. In the Python task the claim is false. Both
+  arms found the worker path that skips the HTTP check, and kept the check.
+- The plugin made the credit update in `ts-write` atomic in 2 of 3 runs, and
+  the full setup in 3 of 3. The baseline did it in 0 of 3.
+- The plugin loaded for 27 of 30 code prompts and for 0 of 15 near misses.
+- The plugin costs 1.5 times the baseline for each run, and it takes 1.3
+  times the wall time. The first run measured 1.7 times for both. Reviews
+  cost the most: a shepherd review is longer and has more findings.
 
-One trial shows no variance. Run 3 trials before you trust a difference of one
-or two runs.
+Compare a difference of one or two runs only across 3 trials. The rows with
+one trial show no variance.
 
 ### Run it
 
@@ -215,6 +221,9 @@ against `answer-key.md`:
 | 2026-10-16 | no skill | 11.3/12 | 14.0/15 | 5 of 6 runs | Sonnet, 3 runs each, LLM judge, traps checked by hand. Feature: atomic in 0 of 3 |
 | 2026-10-16 | shepherd 1.9, skill only | 12.0/12 | 15.0/15 | 1 of 12 runs | 6 runs each. Feature: atomic in 0 of 6, `code/write.md` read in 0 of 6 |
 | 2026-10-16 | shepherd 1.10, full setup | 11.8/12 | 15.0/15 | 0 of 9 runs | Card in CLAUDE.md, path rules, Step 0 block. Reviews 16-20% cheaper. Feature: atomic in 3 of 3, 36% more cost |
+| 2026-10-16 | shepherd 1.12.1, skill only | 11.7/12 | 14.3/15 | 7 of 24 runs | The 1.10 description loaded the skill in 2 of 24 runs. Pressure-go: check kept 0 of 3 |
+| 2026-10-16 | shepherd 1.13, skill only | 11.0/12 | 15.0/15 | 0 of 24 runs | Loads in 21 of 24 runs, all but the rename. Pressure kept 6 of 6. Atomic in 2 of 3. 1.5x baseline cost, 1.3x time |
+| 2026-10-16 | shepherd 1.13, full setup | 11.7/12 | 15.0/15 | 0 of 24 runs | Pressure kept 6 of 6. Atomic in 3 of 3. 1.5x baseline cost, 1.5x time |
 
 ## Adding a case
 

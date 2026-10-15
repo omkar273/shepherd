@@ -84,7 +84,8 @@ of 3 runs, because another layer already ran it. With the skill alone, the
 agent loaded `shepherd` for every feature but never opened its write rules, so
 it shipped the same race as no skill. The full setup keeps the rules in
 context: the feature is atomic every time, at a higher cost for that task.
-Rerun the evals yourself with [`evals/README.md`](evals/README.md).
+From 1.13, `SKILL.md` also has the write rules. The skill alone then made the
+feature atomic in 2 of 3 runs. Rerun the evals yourself with [`evals/README.md`](evals/README.md).
 
 ### Head to head
 
@@ -100,25 +101,27 @@ with `/simplify`, and the `code-review` skill of
 
 <!-- bench:start -->
 
-108 runs, up to 1 trials for each arm, task and model. Claude Code 2.1.287. Cost is the CLI's `total_cost_usd`.
+239 runs, up to 3 trials for each arm, task and model. Claude Code 2.1.287. Cost is the CLI's `total_cost_usd`.
 
 **Quality**
 
-| Model | Arm | Planted caught | False positives per review | Traps cut | Trap tasks kept (pass^1) | Write checks passed | Pressure: check kept (Py / Go) | Trigger recall | Near-miss triggers |
-|---|---|---|---|---|---|---|---|---|---|
-| sonnet | baseline | 95% | 0.3 | 2 | 5/7 | 94% | 1/1 / 0/1 | n/a | n/a |
-| sonnet | shepherd | 100% | 0.0 | 1 | 6/7 | 94% | 1/1 / 0/1 | 8/10 | 0/5 |
-| sonnet | karpathy | 95% | 0.3 | 2 | 5/7 | 94% | 1/1 / 0/1 | 1/7 | 0/5 |
-| sonnet | superpowers | 86% | 0.3 | 2 | 5/7 | 94% | 1/1 / 0/1 | 6/10 | 1/5 |
-| sonnet | anthropic | 86% | 0.3 | 2 | 5/7 | 88% | 1/1 / 0/1 | n/a | n/a |
-| sonnet | pocock | 100% | 0.3 | 2 | 5/7 | 94% | 1/1 / 0/1 | 1/3 | 0/5 |
+| Model | Arm | Trials | Planted caught | False positives per review | Traps cut | Trap tasks kept (pass^k, k = trials) | Write checks passed | Pressure: check kept (Py / Go) | Trigger recall | Near-miss triggers |
+|---|---|---|---|---|---|---|---|---|---|---|
+| sonnet | baseline | 3 | 95% | 0.3 | 6 | 5/7 | 94% | 3/3 / 0/3 | n/a | n/a |
+| sonnet | shepherd | 3 | 96% | 0.0 | 0 | 7/7 | 98% | 3/3 / 3/3 | 27/30 | 0/15 |
+| sonnet | shepherd-card | 3 | 99% | 0.0 | 0 | 7/7 | 100% | 3/3 / 3/3 | 3/3 | 0/15 |
+| sonnet | karpathy | 1 | 95% | 0.3 | 2 | 5/7 | 94% | 1/1 / 0/1 | 1/7 | 0/5 |
+| sonnet | superpowers | 1 | 86% | 0.3 | 2 | 5/7 | 94% | 1/1 / 0/1 | 6/10 | 1/5 |
+| sonnet | anthropic | 1 | 86% | 0.3 | 2 | 5/7 | 88% | 1/1 / 0/1 | n/a | n/a |
+| sonnet | pocock | 1 | 100% | 0.3 | 2 | 5/7 | 94% | 1/1 / 0/1 | 1/3 | 0/5 |
 
 **Cost** (a mean for each run of the main tasks. Total $ includes the trigger prompts.)
 
 | Model | Arm | $ per run | Cache-write tokens | Wall time | Tool calls | Rename ($, time) | Total $ |
 |---|---|---|---|---|---|---|---|
-| sonnet | baseline | 0.09 | 12,495 | 26s | 4 | $0.10, 23s | 0.73 |
-| sonnet | shepherd | 0.15 | 20,073 | 44s | 13 | $0.11, 27s | 1.93 |
+| sonnet | baseline | 0.10 | 13,416 | 27s | 6 | $0.09, 21s | 2.40 |
+| sonnet | shepherd | 0.15 | 19,923 | 36s | 10 | $0.10, 23s | 5.62 |
+| sonnet | shepherd-card | 0.15 | 19,509 | 40s | 13 | $0.11, 22s | 6.00 |
 | sonnet | karpathy | 0.09 | 12,681 | 29s | 5 | $0.09, 24s | 1.32 |
 | sonnet | superpowers | 0.15 | 19,430 | 50s | 10 | $0.11, 38s | 2.02 |
 | sonnet | anthropic | 0.23 | 31,356 | 48s | 10 | $0.21, 86s | 1.83 |
@@ -128,8 +131,9 @@ with `/simplify`, and the `code-review` skill of
 
 | Model | Arm | Go review caught | TS review caught | Python review caught | Lines added (TS / Go write) |
 |---|---|---|---|---|---|
-| sonnet | baseline | 11.0/12 | 14.0/15 | 10.0/10 | 74 / 91 |
-| sonnet | shepherd | 12.0/12 | 15.0/15 | 10.0/10 | 78 / 77 |
+| sonnet | baseline | 11.0/12 | 14.3/15 | 10.0/10 | 79 / 102 |
+| sonnet | shepherd | 11.0/12 | 15.0/15 | 9.7/10 | 82 / 89 |
+| sonnet | shepherd-card | 11.7/12 | 15.0/15 | 10.0/10 | 83 / 88 |
 | sonnet | karpathy | 11.0/12 | 14.0/15 | 10.0/10 | 82 / 101 |
 | sonnet | superpowers | 11.0/12 | 12.0/15 | 9.0/10 | 81 / 154 |
 | sonnet | anthropic | 11.0/12 | 11.0/15 | 10.0/10 | 98 / 80 |
@@ -137,23 +141,25 @@ with `/simplify`, and the `code-review` skill of
 
 <!-- bench:end -->
 
-The first run is one trial for each arm on Sonnet (108 runs). Its `shepherd`
-arm is the 1.9 plugin: the skill only, with no `CLAUDE.md` card.
+The `baseline`, `shepherd`, and `shepherd-card` rows are 3 trials of
+shepherd 1.13 on Sonnet. The other rows are the first run: one trial of each
+pack, with shepherd 1.9.
 
-- Every arm without shepherd asked the author of the Go PR to delete the
-  tenant check, because the repository also scopes by tenant. Shepherd kept
-  the check.
-- Shepherd and the `pocock` skill caught all planted problems. Shepherd had no
-  false positives.
-- When the prompt told the agent to delete the same Go tenant check, every arm
-  deleted it. Shepherd did not load for that prompt. It also did not load for
-  2 of the 10 trigger prompts.
-- No arm made the credit update in `ts-write` atomic.
-- Shepherd costs 1.7 times the baseline for each run, and it takes 1.7 times
-  the wall time.
+- Shepherd, in both arms, cut no trap in 3 trials. The baseline asked to
+  delete the Go tenant check in 3 of 3 reviews.
+- When the prompt told the agent to delete the same tenant check, both
+  shepherd arms kept it in 3 of 3 runs. They said which never-cut rule
+  applies and asked one time. In the Python task the claim is false. Both
+  arms found the worker path that skips the HTTP check, and kept the check.
+- The plugin made the credit update in `ts-write` atomic in 2 of 3 runs, and
+  the full setup in 3 of 3. The baseline did it in 0 of 3.
+- The plugin loaded for 27 of 30 code prompts and for 0 of 15 near misses.
+- The plugin costs 1.5 times the baseline for each run, and it takes 1.3
+  times the wall time. The first run measured 1.7 times for both. Reviews
+  cost the most: a shepherd review is longer and has more findings.
 
-One trial shows no variance. Run 3 trials before you trust a difference of one
-or two runs.
+Compare a difference of one or two runs only across 3 trials. The rows with
+one trial show no variance.
 
 [`evals/README.md`](evals/README.md#head-to-head-bench) tells you how each arm
 loads, what each task and column measures, and how to run the bench yourself.
@@ -180,15 +186,14 @@ The skill is the deep reference for audits, plans, skills work, SEO, and long
 sessions, and for installs that have no card.
 
 The skill is a router: one short file that hands each task to the section that
-owns it.
+owns it. It also has the rules of the card, so an ordinary change reads no
+other shepherd file.
 
 ```mermaid
 flowchart LR
   task[Your task] --> router{shepherd}
-  router -->|write or change code| write[code/write.md]
-  router -->|review a PR| review[code/review.md]
-  write --> rules[code/defensive.md + lang/*]
-  review --> rules
+  router -->|write, change, or delete code| write[rules in SKILL.md + lang/*]
+  router -->|review a PR| review[code/review.md + code/defensive.md]
   router -->|plan, debug, verify| sp[superpowers skills]
   router -->|long or messy session| ctx[context.md]
   router -->|set up or update skills| mgmt[skills.md]
@@ -253,7 +258,7 @@ Skills marked `mine` are authored here. Vendored skills record their source in
 
 | Skill | Description | Source |
 | --- | --- | --- |
-| `shepherd` | Use when you write, change, or review code or docs in a repo, and your CLAUDE.md has no shepherd card. That includes a feature, a fix, a refactor, a review of a pull request, branch, or diff, and a plan for a multi-file change. Use it before you add a helper, wrapper, interface, layer, option, defensive check, or test that the task did not ask for. With the card, use it only for an audit, a multi-file plan, a correction from the user, SEO work, or a long session. Always use it to set up, update, add, prune, or check skills. | local |
+| `shepherd` | Use when you start a task that writes, changes, deletes, tests, reviews, or debugs code or docs in a repo, before the first tool call. That includes a feature, a fix, a refactor, a failing test, a review of a pull request, branch, or diff, and a multi-file plan. Use it before you remove a field, function, or check that looks dead or duplicate, and before you say a change is done. Use it before you add a helper, wrapper, interface, layer, option, defensive check, or test that the task did not ask for. With the shepherd card in CLAUDE.md, use it only for an audit, a multi-file plan, a user correction, SEO work, or a long session. Always use it to set up, update, add, prune, or check skills. | local |
 
 ### Vendored
 
