@@ -3,8 +3,8 @@
 
 --file targets another settings file, such as a repo's
 .claude/settings.local.json. Prints a unified diff of the change and writes
-only with --write. Other keys are kept. Exits 1, leaving the file untouched,
-when it isn't valid JSON."""
+only with --write. Other keys are kept. A null value in --json removes its
+key. Exits 1, leaving the file untouched, when it isn't valid JSON."""
 import argparse
 import difflib
 import json
@@ -42,8 +42,10 @@ def remove_hook(data, event, command, matcher):
 
 def merge(data, patch):
     for key, value in patch.items():
-        if isinstance(value, dict) and isinstance(data.get(key), dict):
-            merge(data[key], value)
+        if value is None:
+            data.pop(key, None)
+        elif isinstance(value, dict):
+            data[key] = merge(data[key] if isinstance(data.get(key), dict) else {}, value)
         else:
             data[key] = value
     return data
