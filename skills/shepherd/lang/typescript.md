@@ -70,6 +70,14 @@ path. MEDIUM is code that adds nothing. Fix or flag the CRITICAL items first.
   const user = await getUser(id); const cart = await getCart(id) // bad
   const [user, cart] = await Promise.all([getUser(id), getCart(id)]) // good
   ```
+- **MEDIUM.** When you write a conditional update, do not also read and
+  check the same rule before it. The update is the check. If it changes no
+  row, throw. This rule is for code that you write. In a review, keep each
+  money check, and do not tell the author to remove one.
+  ```ts
+  if ((await accounts.get(id)).balance < cents) throw new AccountError("LOW") // bad
+  if (!(await accounts.debit(id, cents))) throw new AccountError("LOW") // good: where balance >= $1
+  ```
 - **MEDIUM.** A pass-through function. Call the target directly.
   ```ts
   const getOrder = async (id: string) => await store.get(id) // bad
