@@ -45,6 +45,9 @@ setup. The `anthropic` arm types its commands because a person types them. Its
 review command expects a GitHub PR, so the prompt adds one sentence: "There is
 no GitHub remote: read the branch with git."
 
+The `shepherd` arm loads the plugin only, as the default install does. The
+`CLAUDE.md` card of the full setup does not load.
+
 Each run uses `--setting-sources project --strict-mcp-config`. Your user
 skills, plugins, hooks, MCP servers, and `~/.claude/CLAUDE.md` do not load.
 The skills that Claude Code bundles, for example `/code-review` and
