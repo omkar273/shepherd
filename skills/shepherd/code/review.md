@@ -1,8 +1,30 @@
 # Review mode
 
-Use review mode for a teammate's pull request or branch.
+Use review mode for a teammate's pull request or branch. Do not check out
+or switch a branch. Do not change the working tree.
+
+## Run the lenses in agents
+
+Do these steps first, before you read code:
+
+1. Find the target: a PR number, or a branch and its base.
+2. Spawn the `shepherd:reviewer` agent. Give it only the target as the
+   prompt: `42`, or `feat/x main`. It runs the lenses in parallel agents on a
+   lower-cost model. It returns findings with a confidence score.
+3. Go to "Merge". Do not read the diff, the changed files, or the `lang/`
+   files in this session. The lenses read them.
+
+Do not do the lenses yourself when the agent is available. A review in this
+session costs more, and its findings have no confidence scores to merge.
+
+Run the lenses yourself only if `shepherd:reviewer` is not in your agent
+list, or if it fails. Then gather the context as in the next section. Read
+`agents/reviewer.md` and `agents/lens.md`, and do each lens in turn. In those
+files, `${CLAUDE_PLUGIN_ROOT}` is the shepherd folder.
 
 ## Gather, without touching the working tree
+
+Do this only when you run the lenses yourself.
 
 - For a GitHub PR:
   - Run `gh pr view <n> --json title,body,baseRefName,headRefOid,files,url`.
@@ -20,24 +42,25 @@ Use review mode for a teammate's pull request or branch.
 - The PR's intent is its title, body, and linked issue. Judge the scope
   against this intent.
 
-## Passes, in order
+## Merge
 
-1. Wiring. For each changed signature or behavior, grep every caller at the
-   head. Check every reach-list item that the change implies:
-   - registrations (routes, DI, workers, router tables, exports)
-   - error-to-status mappings for new error values
-   - config and env
-   - migrations
-   - generated code
-   - any construction site that the repo's docs list
-2. Defensive checks. Review each defensive check by the tiers in
-   `code/defensive.md`. Keep never-cut items out of the findings.
-3. The shared cut list in `SKILL.md`. If the PR deletes code as unused, run
-   the "Proving code is unused" checks. If the PR deletes something
-   load-bearing, report it as a MUST.
-4. Scope. Find hunks that are unrelated to the PR's intent. These include old
-   comments or lint backlog that the PR strips from files that it only
-   touches.
+You merge the findings. Do not review the code again.
+
+1. Drop each finding with a confidence under 80. Count the drops.
+2. Drop each finding that removes or weakens an item on the never-cut list
+   in `code/defensive.md`.
+3. Drop each guideline finding with no `Rule:` quote. If a quote is not in a
+   file that you read, check all such quotes with one `git grep -F` call at
+   the head. Drop each finding whose quote is not there.
+4. If two findings name the same root cause, keep one. Keep the best
+   evidence and the higher group.
+5. If one lens says to cut a check and a different lens says to keep it, keep
+   the check. Drop the cut finding.
+6. If a MUST finding has thin evidence, check it with one `git show` or
+   `git grep` call. If the check fails, drop the finding.
+7. Put each finding that is left in a group of the draft. Use the group that
+   the lens gave, unless the table in "Draft for the user" puts it in a
+   different group.
 
 ## Finding contract
 
@@ -45,12 +68,13 @@ Each finding is: `file:line`, what it is, evidence, fix.
 
 - Evidence is concrete: the callers that you grepped, the invariant, where
   the duplicate is, the repo rule that the change breaks.
+- A guideline finding quotes the rule word for word, with the path of the
+  doc.
 - The fix deletes, inlines, moves, or wires code.
 - A concern is not a lean finding if its fix adds new code (a shared helper,
   a feature, hardening, tests beyond what the repo requires). Give it one
-  line under `Outside lean`, or drop it. Put correctness and security bugs
-  that you notice by chance under `Outside lean` too. Add a pointer to
-  `/code-review` or `/security-review` for depth.
+  line under `Outside lean`, or drop it. Add a pointer to `/code-review` or
+  `/security-review` for depth.
 - A `shortcut:` or TODO comment that names its limit is the author's decision,
   not a finding.
 - For issues that the repo's linter catches, say "lint will flag these" once.
@@ -60,9 +84,10 @@ Each finding is: `file:line`, what it is, evidence, fix.
 Show the draft in chat. Never post it on your own.
 
 ```text
-Verdict: comment | request changes   Lean: -<N> lines   Not checked: <...>
+Verdict: comment | request changes   Lean: -<N> lines
+Not checked: <...>   Dropped: <N> under confidence 80
 
-MUST    broken wiring, a removed never-cut check, behavior the PR breaks
+MUST    broken wiring, a removed never-cut check, a wrong result, behavior the PR breaks
 SHOULD  HIGH-tier checks, cut-list abstractions, out-of-scope hunks
 ASK     MEDIUM-tier checks, phrased as a question
 Outside lean    one line each
