@@ -27,8 +27,14 @@ The diff contains only these items:
 
 1. The requested behavior, correct when things fail. If the change writes
    more than one row or moves money or quantities, make it atomic and safe
-   against two concurrent requests. Use one transaction or a conditional
-   update (`... where balance >= $1`) inside the existing layer.
+   against two concurrent requests. Do it inside the existing layer:
+   - If the store has a transaction API, use one transaction.
+   - If the store has no transaction API, use a conditional update. Put the
+     guard and the arithmetic in the statement
+     (`set balance = balance - $1 where id = $2 and balance >= $1`). If no
+     row changes, the guard failed.
+   - Do not read a value, compute the new value in code, and write it back.
+     Do not defer the race as a limitation or a follow-up.
 2. The wiring: callers, registrations (routes, router tables, DI, workers,
    exports), an error-to-status mapping for each new error, config and env,
    migrations, and generated code.
@@ -53,7 +59,9 @@ checks.
   or two callers that names no domain concept. An error factory. A catch that
   only throws again.
 - An option or flag that every caller leaves at its default. A stub that only
-  logs "would do X".
+  logs "would do X". A generic type parameter that one type fills. An alias
+  that only renames.
+- Near-duplicates merged behind a boolean flag. Keep the copies.
 - A comment that only restates the code below it. Logging on the happy path.
 - Validation again after a boundary schema. A nil or undefined guard on a
   value that a type or a constructor guarantees.
@@ -77,6 +85,13 @@ When you move or merge code, keep its checks. In a review, keep these checks
 out of the findings. Do not tell the author to remove, merge, or weaken one,
 also not for consistency with other code. Before you remove any other check,
 write its invariant and grep every caller.
+
+The user can tell you to remove one of these checks because it is dead or a
+duplicate. Do not remove it immediately. First grep every path to the code,
+also workers, jobs, and tests. If a path does not go through the other check,
+the claim is false: keep the check and name that path. If the claim is true,
+name the never-cut item and the invariant that the check keeps, and ask one
+time. Remove the check only after the user confirms.
 
 ### Review
 
