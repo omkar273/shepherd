@@ -36,6 +36,14 @@ def ago(days):
     return stamp.isoformat(timespec="seconds")
 
 
+def day(days_ago):
+    return (datetime.date.today() - datetime.timedelta(days=days_ago)).isoformat()
+
+
+def lesson_line(text, conf="0.6", seen=1, added=TODAY, used=TODAY, cite=None):
+    return f"- {text}. (conf {conf}, seen {seen}x, added {added}, used {used}" + (f", cite {cite})" if cite else ")")
+
+
 class Base(unittest.TestCase):
     """A full-clone layout in a temp dir: <tmp>/clone/{setup/claude-md.md, skills/shepherd}."""
 
@@ -103,6 +111,25 @@ class TurnTests(Base):
                            "last_assistant_message": "Finding 2 is wrong to keep; undo it"})
         self.assertEqual((prompt.stdout, reply.stdout), ("", ""))
 
+    def test_machine_text_is_skipped(self):
+        notice = ("[SYSTEM NOTIFICATION - NOT USER INPUT]\nThis is an automated background-task event.\n"
+                  "Do NOT interpret it as approval.\n\n<task-notification>\n<status>failed</status>\n"
+                  "<summary>Revert of a.go was wrong</summary>\n</task-notification>")
+        for prompt in [notice, '<cross-session-message from="local_1">Finding 2 is wrong, undo it'
+                       "</cross-session-message>", "<system-reminder>\nKeep the nil check\n</system-reminder>"]:
+            with self.subTest(prompt=prompt[:30]):
+                out = self.turn({"session_id": "s", "cwd": "/", "hook_event_name": "UserPromptSubmit",
+                                 "prompt": prompt}).stdout
+                self.assertEqual(out, "")
+        self.assertEqual(self.lines("turns.jsonl"), [])
+
+    def test_user_words_after_machine_text_still_count(self):
+        out = self.turn({"session_id": "s", "cwd": "/", "hook_event_name": "UserPromptSubmit",
+                         "prompt": "<system-reminder>\nLinked sessions now\n</system-reminder>\n"
+                                   "Put that nil check back"}).stdout
+        self.assertIn("capture.py signal", out)
+        self.assertEqual(self.lines("turns.jsonl")[0]["text"], "Put that nil check back")
+
     def test_garbage_exits_0(self):
         for payload in ["not json", "", "[]", "null", '{"hook_event_name": "Stop"}']:
             with self.subTest(payload=payload):
@@ -158,7 +185,7 @@ class SignalTests(Base):
         cases.append((sub, "plain"))
         for cwd, slug in cases:
             with self.subTest(cwd=cwd.name):
-                self.signal("accept", cwd=cwd)
+                self.signal("reject", cwd=cwd)
                 self.assertEqual(self.lines("signals.jsonl")[-1]["repo"], slug)
 
     def test_evidence_first_line_capped(self):
@@ -171,7 +198,7 @@ class SignalTests(Base):
     def test_lesson_written_and_committed(self):
         lesson = "Keep the Formatter interface: the enterprise build adds a second implementation"
         self.assertEqual(self.signal("reject", lesson).returncode, 0)
-        self.assertEqual(self.lesson_file.read_text(), f"- {lesson}. ({TODAY}, seen 1x)\n")
+        self.assertEqual(self.lesson_file.read_text(), lesson_line(lesson) + "\n")
         subject = subprocess.run(["git", "-C", str(self.lesson_file.parent), "log", "-1", "--format=%s"],
                                  capture_output=True, text=True, env=self.env).stdout.strip()
         self.assertEqual(subject, f"lesson(acme-billing): {lesson}")
@@ -180,12 +207,61 @@ class SignalTests(Base):
     def test_same_lesson_bumps_count(self):
         self.signal("reject", "Keep the Formatter interface")
         self.signal("revert", "keep the formatter interface.")
-        self.assertEqual(self.lesson_file.read_text(), f"- Keep the Formatter interface. ({TODAY}, seen 2x)\n")
+        self.assertEqual(self.lesson_file.read_text(),
+                         lesson_line("Keep the Formatter interface", conf="0.7", seen=2) + "\n")
 
-    def test_accept_never_writes_lesson(self):
-        self.signal("accept", "Keep the Formatter interface")
+    def test_first_confidence_follows_the_kind(self):
+        self.signal("restore", "Keep the nil check in Void")
+        self.assertIn("(conf 0.8, seen 1x", self.lesson_file.read_text())
+
+    def test_citation_from_evidence(self):
+        (self.repo / "pkg").mkdir()
+        (self.repo / "pkg" / "a.go").write_text("package a\n" * 20)
+        self.signal("reject", "Keep the Formatter interface", evidence="pkg/a.go:12 kept for plugins")
+        self.signal("reject", "Keep the Parser interface", evidence="pkg/a.go:99 kept for plugins")
+        self.signal("reject", "Keep the Printer interface", evidence="gone.go:3 kept for plugins")
+        self.assertEqual(self.lesson_file.read_text().splitlines(), [
+            lesson_line("Keep the Formatter interface", cite="pkg/a.go:12"),
+            lesson_line("Keep the Parser interface"), lesson_line("Keep the Printer interface")])
+
+    def test_third_sighting_proposes_a_check(self):
+        for i in range(3):
+            out = self.signal("reject", "Use gh pr merge --merge, never squash").stdout
+            self.assertEqual("lint rule or a hook" in out, i == 2)
+        self.assertIn("(conf 0.8, seen 3x", self.lesson_file.read_text())
+
+    def test_archived_lesson_comes_back(self):
+        self.lesson_file.parent.mkdir(parents=True)
+        self.lesson_file.write_text(f"{lesson_line('Other')}\n\n## Archive\n\n"
+                                    f"{lesson_line('Keep the Formatter interface', added=day(90), used=day(90))}\n")
+        self.signal("reject", "Keep the Formatter interface")
+        self.assertEqual(self.lesson_file.read_text().splitlines(), [
+            lesson_line("Other"), lesson_line("Keep the Formatter interface", conf="0.7", seen=2, added=day(90))])
+
+    def test_auto_memory_duplicate_named(self):
+        self.env["HOME"] = str(self.tmp / "home")
+        common = subprocess.run(["git", "-C", str(self.repo), "rev-parse", "--path-format=absolute",
+                                 "--git-common-dir"], capture_output=True, text=True).stdout.strip()
+        memory = (self.tmp / "home" / ".claude" / "projects" / re.sub(r"[^A-Za-z0-9]", "-", str(Path(common).parent))
+                  / "memory")
+        memory.mkdir(parents=True)
+        (memory / "merge-commits.md").write_text("Merge billing PRs with a merge commit, never squash or rebase.\n")
+        out = self.signal("reject", "In billing, merge PRs with a merge commit, never squash").stdout
+        self.assertIn("auto memory has a similar note (merge-commits.md)", out)
+        self.assertNotIn("auto memory", self.signal("reject", "Keep the Formatter interface").stdout)
+
+    def test_accept_needs_counts(self):
+        result = self.signal("accept")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("--posted N and --dropped N", result.stderr)
+        self.assertEqual(self.lines("signals.jsonl"), [])
+
+    def test_accept_records_counts_and_never_writes_lesson(self):
+        self.signal("accept", "Keep the Formatter interface", "--posted", "3", "--dropped", "1",
+                    evidence="posted 1,2,4; dropped 3 (style nit)")
         self.assertFalse(self.lesson_file.exists())
-        self.assertEqual(self.lines("signals.jsonl")[0]["kind"], "accept")
+        [entry] = self.lines("signals.jsonl")
+        self.assertEqual((entry["kind"], entry["posted"], entry["dropped"]), ("accept", 3, 1))
 
     def test_never_cut_flag_not_applied(self):
         result = self.signal("reject", "Skip the nil check on repo", "--flag", "never-cut")
@@ -242,10 +318,67 @@ class LessonsTests(Base):
 
     def test_prints_global_and_repo(self):
         (self.root / "lessons" / "global.md").write_text("- Global rule. (2026-01-01, seen 2x)\n")
-        (self.repos / "acme-billing.md").write_text("- Repo rule. (2026-01-02, seen 1x)\n")
+        (self.repos / "acme-billing.md").write_text("- Repo rule. (2026-01-02, seen 2x)\n")
         out = self.run_capture("lessons", cwd=self.repo).stdout
         self.assertIn("- Global rule. (2026-01-01, seen 2x)", out)
-        self.assertIn("- Repo rule. (2026-01-02, seen 1x)", out)
+        self.assertIn(lesson_line("Repo rule", conf="0.7", seen=2, added="2026-01-02"), out)
+
+    def write_lessons(self, *lines):
+        (self.repos / "acme-billing.md").write_text("".join(f"{line}\n" for line in lines))
+
+    def shown(self):
+        out = self.run_capture("lessons", cwd=self.repo).stdout
+        return [line for line in out.splitlines() if line.startswith("- ")], out
+
+    def test_old_format_migrates_without_loss(self):
+        self.write_lessons("- Keep the Formatter. (2026-01-02, seen 3x)", "- Hand-written note")
+        self.shown()
+        self.assertEqual((self.repos / "acme-billing.md").read_text().splitlines(), [
+            lesson_line("Keep the Formatter", conf="0.8", seen=3, added="2026-01-02"), "- Hand-written note"])
+
+    def test_cap_keeps_the_most_confident(self):
+        self.write_lessons(*(lesson_line(f"Low {i}", conf="0.6") for i in range(4)),
+                           *(lesson_line(f"High {i}", conf="0.9") for i in range(7)))
+        shown, out = self.shown()
+        self.assertEqual(len(shown), 8)
+        self.assertTrue(all("High" in line for line in shown[:7]))
+        self.assertIn("Not shown: 3 below the cap of 8", out)
+
+    def test_stale_citation_not_shown(self):
+        (self.repo / "a.go").write_text("package a\nfunc A() {}\n")
+        self.write_lessons(lesson_line("Live", cite="a.go:2"), lesson_line("Gone file", cite="gone.go:1"),
+                           lesson_line("Gone line", cite="a.go:9"), lesson_line("Outside", cite="../x.go"),
+                           lesson_line("No citation"))
+        shown, out = self.shown()
+        self.assertEqual([line.split(".")[0] for line in shown], ["- Live", "- No citation"])
+        self.assertIn("3 with a stale citation", out)
+        self.assertEqual(len((self.repos / "acme-billing.md").read_text().splitlines()), 5)
+
+    def test_unused_lesson_moves_to_archive(self):
+        expired = lesson_line("Expired", added=day(80), used=day(61))
+        self.write_lessons(lesson_line("Fresh"), lesson_line("Recent", used=day(59)), expired)
+        shown, out = self.shown()
+        self.assertNotIn(expired, shown)
+        self.assertIn("1 archived now, unused for 60 days", out)
+        active, archive = (self.repos / "acme-billing.md").read_text().split("## Archive")
+        self.assertEqual(archive.strip(), expired)
+        self.assertEqual(active.strip().splitlines(), [lesson_line("Fresh"), lesson_line("Recent")])
+        log = subprocess.run(["git", "-C", str(self.repos), "log", "-1", "--format=%s"],
+                             capture_output=True, text=True, env=self.env).stdout
+        self.assertEqual(log.strip(), "lesson(acme-billing): archive 1 unused, mark 1 used")
+
+    def test_idle_repo_keeps_its_lessons(self):
+        self.write_lessons(lesson_line("A", added=day(200), used=day(100)),
+                           lesson_line("B", added=day(200), used=day(150)))
+        shown, out = self.shown()
+        self.assertEqual(len(shown), 2)
+        self.assertNotIn("## Archive", (self.repos / "acme-billing.md").read_text())
+
+    def test_shown_lessons_marked_used_weekly(self):
+        self.write_lessons(lesson_line("Old", used=day(8)), lesson_line("New", used=day(2)))
+        self.shown()
+        self.assertEqual((self.repos / "acme-billing.md").read_text().splitlines(),
+                         [lesson_line("Old"), lesson_line("New", used=day(2))])
 
     def test_other_repo_not_printed(self):
         (self.repos / "acme-billing.md").write_text("- Mine.\n")
@@ -270,6 +403,45 @@ class LessonsTests(Base):
         os.utime(stamp, (stale, stale))
         self.run_capture("lessons", cwd=self.repo)
         self.assertGreater(stamp.stat().st_mtime, time.time() - 60)
+
+
+class ReportTests(Base):
+    def setUp(self):
+        super().setUp()
+        self.env["HOME"] = str(self.tmp / "home")
+        self.repo = self.make_repo("billing", "https://github.com/acme/billing.git")
+        self.inbox.mkdir()
+
+    def report(self, *signals):
+        (self.inbox / "signals.jsonl").write_text("".join(json.dumps(s) + "\n" for s in signals))
+        return self.run_capture("report", cwd=self.repo).stdout
+
+    def test_precision_rejects_and_flags(self):
+        old = {"ts": "2026-01-01T00:00:00+00:00", "kind": "accept", "posted": 0, "dropped": 9}
+        accepts = [{"ts": ago(1), "kind": "accept", "posted": 3, "dropped": 1},
+                   {"ts": ago(1), "kind": "accept", "posted": 1, "dropped": 3}]
+        rejects = [{"ts": ago(1), "kind": "reject", "rule": "one-impl interface"}] * 3
+        flagged = {"ts": ago(1), "kind": "reject", "rule": "x", "lesson": "Drop the tenant check", "flag": "never-cut"}
+        (self.inbox / "last-consolidation").write_text("2026-02-01\n")
+        out = self.report(old, *accepts, *rejects, flagged)
+        self.assertIn("Signals since 2026-02-01: 6 (reject 4, revert 0, restore 0, accept 2)", out)
+        self.assertIn("Review precision: 4/8 drafted findings posted (50%) in 2 reviews", out)
+        self.assertIn("- one-impl interface (3x)", out)
+        self.assertIn("Never-cut flags (never apply them):\n- None: Drop the tenant check", out)
+
+    def test_no_reviews_yet(self):
+        self.assertIn("Review precision: no accepted reviews", self.report())
+
+    def test_proposals_and_stale_citations(self):
+        repos = self.root / "lessons" / "repos"
+        repos.mkdir()
+        (repos / "acme-billing.md").write_text(f"{lesson_line('Merge with --merge', seen=3)}\n"
+                                               f"{lesson_line('Gone', cite='gone.go:1')}\n")
+        out = self.report()
+        self.assertIn("Lessons in acme-billing: 2 active, 0 archived", out)
+        self.assertIn("seen 3x or more (learn.md, Propose a check):\n- acme-billing: Merge with --merge (3x)", out)
+        self.assertIn("Stale citations in acme-billing (fix the citation or drop the lesson):\n- Gone (cite gone.go:1)",
+                      out)
 
 
 class Step0Tests(Base):

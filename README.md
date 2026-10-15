@@ -348,16 +348,30 @@ description of the other skills, so the agent can still find them. Say
 
 - When you reject a finding, undo a cut, or bring back a check, `shepherd`
   records the correction. If the correction is specific to the repo, it adds a
-  lesson that applies from the next session.
+  lesson that applies from the next session. When you tell it to post a
+  review, it records how many drafted findings you kept and dropped.
+- Each lesson carries a confidence, a `file:line` citation, a seen count, and
+  a last-used date. A session gets at most 8 repo lessons, the most confident
+  and most recently used first. A lesson whose cited file or line is gone is
+  not shown. A lesson unused for 60 days of activity in its repo moves to an
+  archive section of the same file; nothing is deleted, and recording it again
+  brings it back.
+- A lesson recorded 3 times that a tool can check becomes a proposal for a
+  lint rule or a hook. You see it first, and nothing changes without your yes.
 - Repo lessons stay on your machine in `skills/shepherd/lessons/repos/`, a
   separate local git repo that is never pushed with this one. Each lesson is a
   commit named `lesson(<owner-repo>): ...`. To share them across machines,
-  give that repo a private remote.
-- While a session uses `shepherd`, hooks log its prompts and replies to the
-  gitignored `skills/shepherd/inbox/` for 30 days. Nothing leaves your machine.
-- Say **"consolidate shepherd lessons"** to promote lessons seen in several
-  repos to `lessons/global.md` or the core rules. You see the diff first, and
-  nothing changes without your yes.
+  give that repo a private remote. Facts that are not about a `shepherd` rule
+  and need no sync (merge style, approval steps) belong in Claude Code's auto
+  memory; `shepherd` names a lesson that duplicates an auto memory note.
+- While a session uses `shepherd`, hooks log your prompts and its replies to
+  the gitignored `skills/shepherd/inbox/` for 30 days. Task notifications,
+  system reminders, and messages from other agents are left out. Nothing
+  leaves your machine.
+- Say **"consolidate shepherd lessons"** for a report (review precision,
+  rules you often reject, stale citations, check proposals) and to promote
+  lessons seen in several repos to `lessons/global.md` or the core rules. You
+  see the diff first, and nothing changes without your yes.
 - A lesson that would weaken the never-cut list is never applied.
 - Undo any change with `git revert`, or say **"revert shepherd <commit>"**.
 
