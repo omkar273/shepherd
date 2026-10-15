@@ -30,6 +30,8 @@ CODE_TAGS = {"write", "review", "debug", "plan"}
 ARMS = {
     "baseline": {},
     "shepherd": {"local": "skills/shepherd", "trigger": CODE_TAGS},
+    # The full setup. Its card covers ordinary changes and sends only multi-file plans to the skill.
+    "shepherd-card": {"local": "skills/shepherd", "card": "setup/claude-md.md", "trigger": {"plan"}},
     "karpathy": {"repo": "forrestchang/andrej-karpathy-skills",
                  "commit": "2c606141936f1eeef17fa3043a72095b4765b9c2", "trigger": {"write", "review"}},
     "superpowers": {"repo": "obra/superpowers", "commit": "bb92a77741419a4ab5f06e711a283343f1ada0c3",
@@ -242,13 +244,20 @@ def merge_turns(turns):
     return merged
 
 
-def prepare(task, run_dir):
-    t = TASKS[task]
+def prepare(task, arm, run_dir):
+    t, spec = TASKS[task], ARMS[arm]
     repo = run_dir / "repo"
     env = {**os.environ, **GIT_ENV}
     sh("bash", str(EVALS / "build_fixture.sh"), t["fixture"], str(repo), env=env)
     if "checkout" in t:
         sh("git", "-C", str(repo), "switch", "-q", t["checkout"], env=env)
+    if "card" in spec:
+        # Copies, because user memory does not load here and -p skips a rule linked from outside
+        # the project. The exclude keeps them out of `git status`, `git add -A`, and the diff.
+        shutil.copytree(REPO / spec["local"] / "lang", repo / ".claude" / "rules" / "shepherd")
+        shutil.copy(REPO / spec["card"], repo / ".claude" / "CLAUDE.md")
+        with (repo / ".git" / "info" / "exclude").open("a") as f:
+            f.write("/.claude/CLAUDE.md\n/.claude/rules/shepherd/\n")
     return repo, env, sh("git", "-C", str(repo), "rev-parse", "HEAD").strip()
 
 
@@ -259,7 +268,7 @@ def run_one(args, arm, task, model, trial):
         return json.loads(result_path.read_text())
     shutil.rmtree(run_dir, ignore_errors=True)
     run_dir.mkdir(parents=True)
-    repo, env, base = prepare(task, run_dir)
+    repo, env, base = prepare(task, arm, run_dir)
     plugin, plugin_name = make_plugin(arm, run_dir, args.cache) if arm != "baseline" else (None, None)
     turns, session = [], None
     start = time.time()

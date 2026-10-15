@@ -7,7 +7,7 @@ on:
     inputs:
       arms:
         description: Arms, comma-separated (see ARMS in evals/bench/bench.py)
-        default: baseline,shepherd,karpathy,superpowers,anthropic,pocock
+        default: baseline,shepherd,shepherd-card,karpathy,superpowers,anthropic,pocock
       models:
         description: Models, comma-separated
         default: sonnet

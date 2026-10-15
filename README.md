@@ -90,7 +90,8 @@ Rerun the evals yourself with [`evals/README.md`](evals/README.md).
 
 A bench gives the same tasks to new agent sessions, one arm for each skill
 pack. It scores the results against an answer key that the agents never see.
-The arms are no pack, `shepherd`,
+There are two `shepherd` arms: the plugin only, and the plugin with the full
+setup (`shepherd-card`). The other arms are no pack,
 [andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills),
 [superpowers](https://github.com/obra/superpowers), the Anthropic
 [code-review plugin](https://github.com/anthropics/claude-code/tree/main/plugins/code-review)
@@ -99,14 +100,15 @@ with `/simplify`, and the `code-review` skill of
 
 <!-- bench:start -->
 
-108 runs, up to 1 trials for each arm, task and model. Claude Code 2.1.287. Cost is the CLI's `total_cost_usd`.
+185 runs, up to 2 trials for each arm, task and model. Claude Code 2.1.287. Cost is the CLI's `total_cost_usd`.
 
 **Quality**
 
-| Model | Arm | Planted caught | False positives per review | Traps cut | Trap tasks kept (pass^1) | Write checks passed | Pressure: check kept (Py / Go) | Trigger recall | Near-miss triggers |
+| Model | Arm | Planted caught | False positives per review | Traps cut | Trap tasks kept (pass^2) | Write checks passed | Pressure: check kept (Py / Go) | Trigger recall | Near-miss triggers |
 |---|---|---|---|---|---|---|---|---|---|
-| sonnet | baseline | 95% | 0.3 | 2 | 5/7 | 94% | 1/1 / 0/1 | n/a | n/a |
-| sonnet | shepherd | 100% | 0.0 | 1 | 6/7 | 94% | 1/1 / 0/1 | 8/10 | 0/5 |
+| sonnet | baseline | 97% | 0.3 | 4 | 5/7 | 94% | 2/2 / 0/2 | n/a | n/a |
+| sonnet | shepherd | 95% | 0.3 | 4 | 5/7 | 94% | 2/2 / 0/2 | 12/20 | 0/10 |
+| sonnet | shepherd-card | 99% | 0.0 | 0 | 7/7 | 100% | 2/2 / 2/2 | 2/2 | 0/10 |
 | sonnet | karpathy | 95% | 0.3 | 2 | 5/7 | 94% | 1/1 / 0/1 | 1/7 | 0/5 |
 | sonnet | superpowers | 86% | 0.3 | 2 | 5/7 | 94% | 1/1 / 0/1 | 6/10 | 1/5 |
 | sonnet | anthropic | 86% | 0.3 | 2 | 5/7 | 88% | 1/1 / 0/1 | n/a | n/a |
@@ -116,8 +118,9 @@ with `/simplify`, and the `code-review` skill of
 
 | Model | Arm | $ per run | Cache-write tokens | Wall time | Tool calls | Rename ($, time) | Total $ |
 |---|---|---|---|---|---|---|---|
-| sonnet | baseline | 0.09 | 12,495 | 26s | 4 | $0.10, 23s | 0.73 |
-| sonnet | shepherd | 0.15 | 20,073 | 44s | 13 | $0.11, 27s | 1.93 |
+| sonnet | baseline | 0.09 | 12,723 | 32s | 5 | $0.10, 39s | 1.49 |
+| sonnet | shepherd | 0.10 | 13,701 | 30s | 6 | $0.10, 29s | 2.90 |
+| sonnet | shepherd-card | 0.14 | 18,141 | 45s | 12 | $0.10, 31s | 3.67 |
 | sonnet | karpathy | 0.09 | 12,681 | 29s | 5 | $0.09, 24s | 1.32 |
 | sonnet | superpowers | 0.15 | 19,430 | 50s | 10 | $0.11, 38s | 2.02 |
 | sonnet | anthropic | 0.23 | 31,356 | 48s | 10 | $0.21, 86s | 1.83 |
@@ -127,8 +130,9 @@ with `/simplify`, and the `code-review` skill of
 
 | Model | Arm | Go review caught | TS review caught | Python review caught | Lines added (TS / Go write) |
 |---|---|---|---|---|---|
-| sonnet | baseline | 11.0/12 | 14.0/15 | 10.0/10 | 74 / 91 |
-| sonnet | shepherd | 12.0/12 | 15.0/15 | 10.0/10 | 78 / 77 |
+| sonnet | baseline | 11.5/12 | 14.5/15 | 10.0/10 | 80 / 86 |
+| sonnet | shepherd | 11.0/12 | 14.0/15 | 10.0/10 | 75 / 94 |
+| sonnet | shepherd-card | 11.5/12 | 15.0/15 | 10.0/10 | 94 / 76 |
 | sonnet | karpathy | 11.0/12 | 14.0/15 | 10.0/10 | 82 / 101 |
 | sonnet | superpowers | 11.0/12 | 12.0/15 | 9.0/10 | 81 / 154 |
 | sonnet | anthropic | 11.0/12 | 11.0/15 | 10.0/10 | 98 / 80 |
@@ -136,23 +140,28 @@ with `/simplify`, and the `code-review` skill of
 
 <!-- bench:end -->
 
-The first run is one trial for each arm on Sonnet (108 runs). Its `shepherd`
-arm is the 1.9 plugin: the skill only, with no `CLAUDE.md` card.
+This run is on Sonnet only, with a limit of 10 USD. `baseline`, `shepherd`,
+and `shepherd-card` have 2 trials. The other arms have 1 trial from the first
+run, with the same Claude Code version and fixtures. The skill is version
+1.12.1.
 
-- Every arm without shepherd asked the author of the Go PR to delete the
-  tenant check, because the repository also scopes by tenant. Shepherd kept
-  the check.
-- Shepherd and the `pocock` skill caught all planted problems. Shepherd had no
-  false positives.
-- When the prompt told the agent to delete the same Go tenant check, every arm
-  deleted it. Shepherd did not load for that prompt. It also did not load for
-  2 of the 10 trigger prompts.
-- No arm made the credit update in `ts-write` atomic.
-- Shepherd costs 1.7 times the baseline for each run, and it takes 1.7 times
-  the wall time.
+- `shepherd-card` is the only arm that kept all traps in all runs. It kept the
+  Go tenant check in the review (2 of 2), and when the prompt told it to
+  delete the check (2 of 2). Every other arm deleted that check.
+- `shepherd-card` made the credit update in `ts-write` atomic in 2 of 2 runs.
+  No other arm did this.
+- `shepherd-card` caught 99% of the planted problems, with no false
+  positives. The card gave these results. The skill loaded only for the plan
+  prompt.
+- Without the card, the skill loaded in 2 of 16 main runs. Thus the
+  `shepherd` arm got the same results as no pack. It asked to cut the Go
+  tenant check in 2 of 2 reviews. In the first run, the 1.9 plugin kept that
+  check.
+- `shepherd-card` costs 1.5 times the baseline for each run (0.14 USD against
+  0.09 USD). It takes 1.4 times the wall time (45 s against 32 s).
 
-One trial shows no variance. Run 3 trials before you trust a difference of one
-or two runs.
+Two trials do not measure variance well. Run 3 trials on Sonnet and Opus
+before you trust a difference of one run.
 
 [`evals/README.md`](evals/README.md#head-to-head-bench) tells you how each arm
 loads, what each task and column measures, and how to run the bench yourself.

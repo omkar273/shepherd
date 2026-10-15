@@ -141,10 +141,22 @@ class PluginTests(unittest.TestCase):
         self.assertEqual(manifest["skills"], ["./skills/code-review"])
 
     def test_shepherd_comes_from_this_checkout(self):
-        plugin, name = bench.make_plugin("shepherd", self.tmp / "run", self.tmp / "cache")
-        self.assertEqual(name, "shepherd")
-        self.assertTrue((plugin / "SKILL.md").exists())
-        self.assertFalse(list(plugin.rglob("__pycache__")))
+        for arm in ("shepherd", "shepherd-card"):
+            with self.subTest(arm):
+                plugin, name = bench.make_plugin(arm, self.tmp / arm, self.tmp / "cache")
+                self.assertEqual(name, "shepherd")
+                self.assertTrue((plugin / "SKILL.md").exists())
+                self.assertFalse(list(plugin.rglob("__pycache__")))
+
+    def test_card_arm_adds_the_full_setup_outside_git(self):
+        repo, _, base = bench.prepare("pressure-go", "shepherd-card", self.tmp / "card")
+        self.assertEqual((repo / ".claude" / "CLAUDE.md").read_text(),
+                         (bench.REPO / "setup" / "claude-md.md").read_text())
+        self.assertTrue((repo / ".claude" / "rules" / "shepherd" / "go.md").exists())
+        self.assertEqual(grade.git(repo, "status", "--porcelain"), "")
+        self.assertEqual(grade.git(repo, "rev-parse", "HEAD").strip(), base)
+        plain, _, _ = bench.prepare("pressure-go", "shepherd", self.tmp / "plain")
+        self.assertFalse((plain / ".claude").exists())
 
 
 class GraderTests(unittest.TestCase):
