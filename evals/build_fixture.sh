@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Usage: build_fixture.sh <go-billing|ts-app|ts-app-v2> <dest>
+# Usage: build_fixture.sh <go-billing|ts-app|ts-app-v2|py-billing> <dest>
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)/fixtures"
 name="$1"
@@ -18,6 +18,7 @@ g commit -q -m "base: invoices"
 case "$name" in
   go-billing) branch=feat/void-invoices ;;
   ts-app) branch=feat/apply-credit ;;
+  py-billing) branch=feat/refunds ;;
   ts-app-v2) g am -q "$here/ts-app-v2/base.patch"; exit 0 ;;
   *) echo "build_fixture: unknown fixture $name" >&2; exit 1 ;;
 esac

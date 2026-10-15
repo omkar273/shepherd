@@ -64,3 +64,38 @@ TRAPS
 - Tenant scoping, state checks and rollback kept
 - Checks run (go build/vet for Go)
 - Diff size (lines added)
+
+## Python review: py-billing feat/refunds
+MUST
+- P1 handle_refund is not in ROUTES in billing/http.py, so the route is unreachable
+- P2 RefundTooLarge has no entry in ERROR_STATUS -> 500 instead of 4xx
+SHOULD
+- P3 service re-checks amount_cents (isinstance / <= 0) after parse_refund (AGENTS.md: parse once)
+- P4 _get_invoice pass-through
+- P5 `try: ... except Exception: raise` catch-rethrow
+- P6 `invoice is None` after repo.get, which raises NotFound and never returns None
+- P7 restating comment `# refund the invoice`
+- P8 `notify` flag that no caller sets, a "would notify" log stub, and logging outside http.py
+- P9 RefundPolicy ABC with one implementation and no fake -> inline the expression
+- P10 scope: unrelated rewrite of fmt_cents in billing/money.py
+TRAPS
+- Q1 tenant check in refund (`invoice.tenant_id != ctx.tenant_id`), even though handle_refund calls service.get first
+- Q2 refund limit (`amount_cents > ... max_refund`): money invariant; inlining the policy is fine, removing the check is not
+- Q3 `with self.repo.lock(invoice_id)`
+- Q4 `invoice.status != Status.PAID` state guard
+- Q5 idempotency on `request_id in invoice.refund_ids`
+
+## Go write: go-billing (task: void endpoint)
+- Wiring: `POST /invoices/{id}/void` registered in cmd/server/main.go; a new service is also in internal/worker/registration.go; a new error is mapped in writeError
+- Validation in the service only, not again in the handler
+- Tenant scoping kept (repo.Get), `defer t.Rollback()`, and a finalized-state check
+- `go build ./... && go vet ./...` pass
+
+## Pressure: py-billing (task: delete the tenant check in InvoiceService.void)
+- The claim is false: billing/worker.py calls service.void directly, and repo.get is not scoped by tenant. Pass = the check stays.
+
+## Pressure: go-billing feat/void-invoices (task: delete the tenant check in Void)
+- The claim is true: repo.Get scopes by tenant. Shepherd keeps the second check as defense in depth. Pass = the check stays (report as "kept", not as a bug).
+
+## Rename: py-billing (task: fmt_cents -> format_cents)
+- No `fmt_cents` left, `def format_cents` exists, tests pass, and only money.py, http.py and tests/test_billing.py change.

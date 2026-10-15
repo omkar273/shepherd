@@ -1,0 +1,379 @@
+{
+  "judge_model": "sonnet",
+  "outputs": 10,
+  "item_agreement": 0.995,
+  "mean_fp_difference": 0.1,
+  "rows": [
+    {
+      "file": "go-review-baseline.md",
+      "hand_caught": [
+        "G1",
+        "G10",
+        "G12",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6",
+        "G7",
+        "G8",
+        "G9"
+      ],
+      "judge_caught": [
+        "G1",
+        "G10",
+        "G12",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6",
+        "G7",
+        "G8",
+        "G9"
+      ],
+      "hand_traps_cut": [
+        "T3"
+      ],
+      "judge_traps_cut": [
+        "T3"
+      ],
+      "hand_fp": 1,
+      "judge_fp": 1,
+      "judge_fp_text": [
+        "Item 7 asks to remove the manual tenant/env check in Void as redundant with repo scoping, which would drop a needed never-cut check."
+      ]
+    },
+    {
+      "file": "go-review-shepherd.md",
+      "hand_caught": [
+        "G1",
+        "G10",
+        "G11",
+        "G12",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6",
+        "G7",
+        "G8",
+        "G9"
+      ],
+      "judge_caught": [
+        "G1",
+        "G10",
+        "G11",
+        "G12",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6",
+        "G7",
+        "G8",
+        "G9"
+      ],
+      "hand_traps_cut": [],
+      "judge_traps_cut": [],
+      "hand_fp": 0,
+      "judge_fp": 0,
+      "judge_fp_text": []
+    },
+    {
+      "file": "go-review-anthropic.md",
+      "hand_caught": [
+        "G1",
+        "G10",
+        "G12",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6",
+        "G7",
+        "G8",
+        "G9"
+      ],
+      "judge_caught": [
+        "G1",
+        "G10",
+        "G12",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6",
+        "G7",
+        "G8",
+        "G9"
+      ],
+      "hand_traps_cut": [
+        "T3"
+      ],
+      "judge_traps_cut": [
+        "T3"
+      ],
+      "hand_fp": 1,
+      "judge_fp": 1,
+      "judge_fp_text": [
+        "Recommends removing the explicit tenant/environment comparison in Void and relying on repo scoping, which removes a needed never-cut check."
+      ]
+    },
+    {
+      "file": "go-review-pocock.md",
+      "hand_caught": [
+        "G1",
+        "G10",
+        "G11",
+        "G12",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6",
+        "G7",
+        "G8",
+        "G9"
+      ],
+      "judge_caught": [
+        "G1",
+        "G10",
+        "G11",
+        "G12",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6",
+        "G7",
+        "G8",
+        "G9"
+      ],
+      "hand_traps_cut": [
+        "T3"
+      ],
+      "judge_traps_cut": [
+        "T3"
+      ],
+      "hand_fp": 1,
+      "judge_fp": 1,
+      "judge_fp_text": []
+    },
+    {
+      "file": "ts-review-karpathy.md",
+      "hand_caught": [
+        "S1",
+        "S10",
+        "S11",
+        "S12",
+        "S13",
+        "S2",
+        "S3",
+        "S5",
+        "S6",
+        "S7",
+        "S8",
+        "S9",
+        "W1",
+        "W2"
+      ],
+      "judge_caught": [
+        "S1",
+        "S10",
+        "S11",
+        "S12",
+        "S13",
+        "S2",
+        "S3",
+        "S5",
+        "S6",
+        "S7",
+        "S8",
+        "S9",
+        "W1",
+        "W2"
+      ],
+      "hand_traps_cut": [],
+      "judge_traps_cut": [],
+      "hand_fp": 0,
+      "judge_fp": 0,
+      "judge_fp_text": []
+    },
+    {
+      "file": "ts-review-superpowers.md",
+      "hand_caught": [
+        "S1",
+        "S10",
+        "S11",
+        "S13",
+        "S2",
+        "S3",
+        "S5",
+        "S6",
+        "S7",
+        "S8",
+        "S9",
+        "W1",
+        "W2"
+      ],
+      "judge_caught": [
+        "S1",
+        "S10",
+        "S11",
+        "S13",
+        "S2",
+        "S3",
+        "S5",
+        "S6",
+        "S7",
+        "S8",
+        "W1",
+        "W2"
+      ],
+      "hand_traps_cut": [],
+      "judge_traps_cut": [],
+      "hand_fp": 0,
+      "judge_fp": 0,
+      "judge_fp_text": []
+    },
+    {
+      "file": "ts-review-pocock.md",
+      "hand_caught": [
+        "S1",
+        "S10",
+        "S11",
+        "S12",
+        "S13",
+        "S2",
+        "S3",
+        "S4",
+        "S5",
+        "S6",
+        "S7",
+        "S8",
+        "S9",
+        "W1",
+        "W2"
+      ],
+      "judge_caught": [
+        "S1",
+        "S10",
+        "S11",
+        "S12",
+        "S13",
+        "S2",
+        "S3",
+        "S4",
+        "S5",
+        "S6",
+        "S7",
+        "S8",
+        "S9",
+        "W1",
+        "W2"
+      ],
+      "hand_traps_cut": [],
+      "judge_traps_cut": [],
+      "hand_fp": 1,
+      "judge_fp": 0,
+      "judge_fp_text": []
+    },
+    {
+      "file": "py-review-baseline.md",
+      "hand_caught": [
+        "P1",
+        "P10",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8",
+        "P9"
+      ],
+      "judge_caught": [
+        "P1",
+        "P10",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8",
+        "P9"
+      ],
+      "hand_traps_cut": [],
+      "judge_traps_cut": [],
+      "hand_fp": 0,
+      "judge_fp": 0,
+      "judge_fp_text": []
+    },
+    {
+      "file": "py-review-shepherd.md",
+      "hand_caught": [
+        "P1",
+        "P10",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8",
+        "P9"
+      ],
+      "judge_caught": [
+        "P1",
+        "P10",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8",
+        "P9"
+      ],
+      "hand_traps_cut": [],
+      "judge_traps_cut": [],
+      "hand_fp": 0,
+      "judge_fp": 0,
+      "judge_fp_text": []
+    },
+    {
+      "file": "py-review-anthropic.md",
+      "hand_caught": [
+        "P1",
+        "P10",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8",
+        "P9"
+      ],
+      "judge_caught": [
+        "P1",
+        "P10",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8",
+        "P9"
+      ],
+      "hand_traps_cut": [],
+      "judge_traps_cut": [],
+      "hand_fp": 0,
+      "judge_fp": 0,
+      "judge_fp_text": []
+    }
+  ]
+}

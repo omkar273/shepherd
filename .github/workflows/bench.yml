@@ -1,0 +1,64 @@
+name: bench
+
+# Head-to-head bench of shepherd against other skill packs. It calls the model
+# hundreds of times, so it runs only when started by hand, never on a pull request.
+on:
+  workflow_dispatch:
+    inputs:
+      arms:
+        description: Arms, comma-separated (see ARMS in evals/bench/bench.py)
+        default: baseline,shepherd,karpathy,superpowers,anthropic,pocock
+      models:
+        description: Models, comma-separated
+        default: sonnet
+      trials:
+        description: Trials for each arm, task and model
+        default: "3"
+      max_cost:
+        description: Stop starting runs after this many USD
+        default: "40"
+
+permissions:
+  contents: read
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code@2.1.287
+      - name: Run
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ARMS: ${{ inputs.arms }}
+          MODELS: ${{ inputs.models }}
+          TRIALS: ${{ inputs.trials }}
+          MAX_COST: ${{ inputs.max_cost }}
+        run: >-
+          python3 evals/bench/bench.py bench-out --arms "$ARMS" --models "$MODELS"
+          --trials "$TRIALS" --max-cost "$MAX_COST"
+      - name: Score
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python3 evals/bench/grade.py score bench-out
+      - name: Report
+        run: python3 evals/bench/report.py bench-out >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bench-results
+          path: |
+            bench-out/*/*/result.json
+            bench-out/*/*/score.json
+            bench-out/*/*/stream*.jsonl

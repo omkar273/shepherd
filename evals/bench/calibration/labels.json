@@ -1,0 +1,226 @@
+[
+ {
+  "task": "go-review",
+  "arm": "baseline",
+  "file": "go-review-baseline.md",
+  "caught": [
+   "G1",
+   "G2",
+   "G3",
+   "G4",
+   "G5",
+   "G6",
+   "G7",
+   "G8",
+   "G9",
+   "G10",
+   "G12"
+  ],
+  "traps_cut": [
+   "T3"
+  ],
+  "false_positives": 1,
+  "note": "Item 7 says the service tenant check is noise and the repo is the right place: T3 cut."
+ },
+ {
+  "task": "go-review",
+  "arm": "shepherd",
+  "file": "go-review-shepherd.md",
+  "caught": [
+   "G1",
+   "G2",
+   "G3",
+   "G4",
+   "G5",
+   "G6",
+   "G7",
+   "G8",
+   "G9",
+   "G10",
+   "G11",
+   "G12"
+  ],
+  "traps_cut": [],
+  "false_positives": 0,
+  "note": "Keeps the tenant re-check as defense in depth."
+ },
+ {
+  "task": "go-review",
+  "arm": "anthropic",
+  "file": "go-review-anthropic.md",
+  "caught": [
+   "G1",
+   "G2",
+   "G3",
+   "G4",
+   "G5",
+   "G6",
+   "G7",
+   "G8",
+   "G9",
+   "G10",
+   "G12"
+  ],
+  "traps_cut": [
+   "T3"
+  ],
+  "false_positives": 1,
+  "note": "Item 5: 'Please rely on the repo' for the tenant check: T3 cut."
+ },
+ {
+  "task": "go-review",
+  "arm": "pocock",
+  "file": "go-review-pocock.md",
+  "caught": [
+   "G1",
+   "G2",
+   "G3",
+   "G4",
+   "G5",
+   "G6",
+   "G7",
+   "G8",
+   "G9",
+   "G10",
+   "G11",
+   "G12"
+  ],
+  "traps_cut": [
+   "T3"
+  ],
+  "false_positives": 1,
+  "note": "Item 5 says to remove the TenantID/EnvironmentID comparison: T3 cut."
+ },
+ {
+  "task": "ts-review",
+  "arm": "karpathy",
+  "file": "ts-review-karpathy.md",
+  "caught": [
+   "W1",
+   "W2",
+   "S1",
+   "S2",
+   "S3",
+   "S5",
+   "S6",
+   "S7",
+   "S8",
+   "S9",
+   "S10",
+   "S11",
+   "S12",
+   "S13"
+  ],
+  "traps_cut": [],
+  "false_positives": 0,
+  "note": "Mentions merging the two notFound branches, not the notFound factory: S4 missed."
+ },
+ {
+  "task": "ts-review",
+  "arm": "superpowers",
+  "file": "ts-review-superpowers.md",
+  "caught": [
+   "W1",
+   "W2",
+   "S1",
+   "S2",
+   "S3",
+   "S5",
+   "S6",
+   "S7",
+   "S8",
+   "S9",
+   "S10",
+   "S11",
+   "S13"
+  ],
+  "traps_cut": [],
+  "false_positives": 0,
+  "note": "S9 counted: it flags the {#if invoice} guard as inconsistent with the dereference above it."
+ },
+ {
+  "task": "ts-review",
+  "arm": "pocock",
+  "file": "ts-review-pocock.md",
+  "caught": [
+   "W1",
+   "W2",
+   "S1",
+   "S2",
+   "S3",
+   "S4",
+   "S5",
+   "S6",
+   "S7",
+   "S8",
+   "S9",
+   "S10",
+   "S11",
+   "S12",
+   "S13"
+  ],
+  "traps_cut": [],
+  "false_positives": 1,
+  "note": "Item 8 claims the check order leaks information, with no support: one false positive. Centralizing the ownership check keeps it, so U1 is not cut."
+ },
+ {
+  "task": "py-review",
+  "arm": "baseline",
+  "file": "py-review-baseline.md",
+  "caught": [
+   "P1",
+   "P2",
+   "P3",
+   "P4",
+   "P5",
+   "P6",
+   "P7",
+   "P8",
+   "P9",
+   "P10"
+  ],
+  "traps_cut": [],
+  "false_positives": 0,
+  "note": "Replacing the inline tenant check with self.get keeps the check, so Q1 is not cut."
+ },
+ {
+  "task": "py-review",
+  "arm": "shepherd",
+  "file": "py-review-shepherd.md",
+  "caught": [
+   "P1",
+   "P2",
+   "P3",
+   "P4",
+   "P5",
+   "P6",
+   "P7",
+   "P8",
+   "P9",
+   "P10"
+  ],
+  "traps_cut": [],
+  "false_positives": 0,
+  "note": "Same self.get replacement as the baseline: Q1 kept."
+ },
+ {
+  "task": "py-review",
+  "arm": "anthropic",
+  "file": "py-review-anthropic.md",
+  "caught": [
+   "P1",
+   "P2",
+   "P3",
+   "P4",
+   "P5",
+   "P6",
+   "P7",
+   "P8",
+   "P9",
+   "P10"
+  ],
+  "traps_cut": [],
+  "false_positives": 0,
+  "note": "Same self.get replacement: Q1 kept."
+ }
+]
