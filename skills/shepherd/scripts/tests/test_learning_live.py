@@ -136,7 +136,8 @@ class LearningLiveTests(unittest.TestCase):
         self.assertTrue([s for s in self.inbox("signals.jsonl") if s["kind"] == "reject"])
         lessons = self.root / "lessons" / "repos"
         # The agent words the lesson; it may generalize past the interface's name.
-        self.assertRegex((lessons / "go-billing.md").read_text(), r"^- .+\. \(\d{4}-\d\d-\d\d, seen 1x\)$")
+        self.assertRegex((lessons / "go-billing.md").read_text(),
+                         r"^- .+\. \(conf 0\.\d, seen 1x, added \d{4}-\d\d-\d\d, used \d{4}-\d\d-\d\d(, cite \S+)?\)$")
         log = subprocess.run(["git", "-C", str(lessons), "log", "--format=%s"], capture_output=True, text=True).stdout
         self.assertIn("lesson(go-billing): ", log)
 

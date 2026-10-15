@@ -8,7 +8,7 @@ the lint config. Read the files that are not in context in one parallel batch.
 Do not load the `shepherd` skill for an ordinary change or review. This card
 covers them. Load the skill for an audit, a multi-file plan, SEO work, a long
 session, or a skills task (set up, update, add, prune, status). When the user
-corrects your work, load it before you reply.
+corrects your work or tells you to post a review, load it before you reply.
 
 ### Ladder
 

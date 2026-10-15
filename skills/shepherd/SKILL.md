@@ -65,7 +65,7 @@ file only when a row below applies.
 | Adding or removing a catalog skill | `curate.md` |
 | SEO or AEO work on a site or product | `seo.md` |
 | A long, slow, or messy session | `context.md` |
-| The user corrects your work | `learn.md`, Record a correction. Do this before you reply. |
+| The user corrects your work, or tells you to post a review | `learn.md`, Record a correction. Do this before you reply. |
 | "Consolidate shepherd lessons", "revert shepherd <commit>" | `learn.md` |
 
 If a superpowers skill above is not installed, do its step yourself:
