@@ -90,7 +90,8 @@ Rerun the evals yourself with [`evals/README.md`](evals/README.md).
 
 A bench gives the same tasks to new agent sessions, one arm for each skill
 pack. It scores the results against an answer key that the agents never see.
-The arms are no pack, `shepherd`,
+There are two `shepherd` arms: the plugin only, and the plugin with the full
+setup (`shepherd-card`). The other arms are no pack,
 [andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills),
 [superpowers](https://github.com/obra/superpowers), the Anthropic
 [code-review plugin](https://github.com/anthropics/claude-code/tree/main/plugins/code-review)
