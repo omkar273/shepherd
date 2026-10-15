@@ -245,9 +245,9 @@ tells the warning the window size (it assumes 200k without one).
 Say **"prune skills for this repo"** to show only the names of the skills a
 repo does not need, in its `.claude/settings.local.json`. Skills keep their
 descriptions when shepherd routes work to them, when the repo used them in the
-last 30 days, or when you name them. A SessionStart hook lists keywords for
-the other skills, so the agent can still find them. Say **"unhide X"** to bring
-a description back.
+last 30 days, or when you name them. A SessionStart hook gives a short
+description of the other skills, so the agent can still find them. Say
+**"unhide X"** to bring a description back.
 
 ### Learning from corrections
 

@@ -5,11 +5,12 @@
 over the last 30 days. It also makes a patch for the repo's
 .claude/settings.local.json. The patch sets "name-only" for each user, project,
 and builtin skill that it does not keep. It keeps shepherd, the skills that the
-routing table names, invoked skills, and --keep matches. The patch also turns
-off unused plugins that have a key. --patch prints only the patch.
+routing table names, invoked skills, and --keep matches. It removes a
+"name-only" override when no skill has that name. The patch also turns off
+unused plugins that have a key. --patch prints only the patch.
 
---index prints keywords for each skill that the repo set to name-only, for a
-SessionStart hook."""
+--index prints a short description of each skill that the repo set to
+name-only, for a SessionStart hook."""
 import argparse
 import datetime
 import fnmatch
@@ -32,9 +33,49 @@ RUNTIMES = {"claude": Path(".claude/skills"), "agents": Path(".agents/skills")}
 USAGE_DAYS = 30
 COMMAND_NAME = re.compile(r"<command-name>/([^<\s]+)</command-name>")
 USAGE_MARKERS = ('"skill_listing"', '"tool_use"', "<command-name>")
-INDEX_KEYWORDS = 6
-STOPWORDS = set("a about an and any are as asks be by for from in is it its of on or that the this to "
-                "use used user uses when wants with you your".split())
+INDEX_CHARS = 160
+# Claude Code saves longer hook output to a file and gives the agent only a preview.
+HOOK_CAP = 10_000
+INDEX_HEADER = "These skills show only their names. If one fits the task, call it by name with the Skill tool."
+HIDEABLE = ("user", "project", "builtin")
+# Skills that come with Claude Code or the desktop app. They have no SKILL.md on disk.
+BUILTIN_SKILLS = {
+    "artifact-capabilities": "Runtime capabilities of a published Artifact page: live or connected data, saved and "
+                             "shared state, who is viewing, files that people add or save.",
+    "artifact-design": "Design rules for Artifacts. Load before you write any Artifact page, HTML or Markdown.",
+    "artifact-diagramming": "Diagrams for Artifacts: when a diagram helps, how to show the real mechanism, and "
+                            "inline SVG that reads in light and dark themes.",
+    "claude-api": "Reference for the Claude API and Anthropic SDK: model IDs, pricing, parameters, streaming, tool "
+                  "use, MCP, agents, caching, token counts, model migration.",
+    "claude-in-chrome": "Control the user's Chrome browser: click, fill forms, take screenshots, read console logs. "
+                        "Load before any mcp__claude-in-chrome__ tool.",
+    "code-review": "Review the current diff, a PR, a branch, or a path for correctness bugs at an effort level. "
+                   "--comment posts PR comments, --fix applies the findings.",
+    "dataviz": "Load before you make any chart, graph, plot, dashboard, stat tile, or data visualization: chart "
+               "form, colors, palettes, legends, axes, tooltips.",
+    "design": "Make a design canvas Artifact: UI mockups, screen flows, wireframes, landing pages, posters, flyers, "
+              "banners, one-pagers that the user edits by hand.",
+    "fewer-permission-prompts": "Scan transcripts for common read-only Bash and MCP calls, then add an allowlist to "
+                                "the project .claude/settings.json to reduce permission prompts.",
+    "init": "Make a new CLAUDE.md file that documents the codebase.",
+    "keybindings-help": "Customize keyboard shortcuts: rebind keys, add chord bindings, edit "
+                        "~/.claude/keybindings.json.",
+    "loop": "Run a prompt or slash command again on an interval, for example check the deploy every 5 minutes. "
+            "Not for one-off tasks.",
+    "plugin-authoring": "Make a mod in Claude Code: a live pane, band, status line, toast, or hook, written as a "
+                        "plugin of function hooks. Load before you write a hooks module.",
+    "run": "Start and drive this project's app to see a change work: run, start, or screenshot the app, or confirm "
+           "a change in the real app, not only in tests.",
+    "schedule": "Create, update, list, or run scheduled cloud agents (routines) on a cron schedule, or one run at a "
+                "later time, such as 'remind me tomorrow'.",
+    "security-review": "Do a security review of the pending changes on the current branch.",
+    "simplify": "Review the changed code for reuse, simplification, and efficiency, then apply the fixes. Quality "
+                "only: for bugs, use code-review.",
+    "update-config": "Configure Claude Code in settings.json: hooks for automatic behavior ('whenever X', 'before "
+                     "Y'), permissions ('allow X'), env vars, hook problems.",
+    "workflow-authoring": "Reference for writing a Workflow tool script: script API, resume, quality patterns, "
+                          "examples. Load before you write a workflow script.",
+}
 
 
 def remote_head(url):
@@ -78,29 +119,45 @@ def routed_skills():
     return {"shepherd", *re.findall(r"`([a-z0-9-]+)`", table)}
 
 
+def skill_kind(home, repo, name):
+    """"stale" when no skill folder or builtin has the name, so an override of it does nothing."""
+    return ("plugin" if ":" in name
+            else "user" if (home / ".claude" / "skills" / name).exists()
+            else "project" if (repo / ".claude" / "skills" / name).exists()
+            else "builtin" if name in BUILTIN_SKILLS
+            else "stale")
+
+
+def shorten(text, limit):
+    """The text on one line, cut at a word boundary to at most limit chars."""
+    text = " ".join(text.split())
+    return text if len(text) <= limit else text[:max(limit - 4, 0)].rsplit(" ", 1)[0] + " ..."
+
+
 def hidden_index(home, repo):
-    """A SessionStart hook text: keywords for each skill that the repo set to name-only."""
+    """A SessionStart hook text: a short description of each skill that the repo set to name-only."""
     try:
         overrides = json.loads((repo / ".claude" / "settings.local.json").read_text())["skillOverrides"]
     except (OSError, ValueError, KeyError, TypeError):
         return ""
-    lines = []
+    entries = []
     for name in sorted(n for n, value in overrides.items() if value == "name-only"):
-        folder = next((base / name for base in (home / ".claude" / "skills", repo / ".claude" / "skills")
-                       if (base / name / "SKILL.md").exists()), None)
-        if not folder:
-            continue
-        try:
-            description = skill_meta.read_skill_frontmatter(folder).get("description", "")
-        except (OSError, ValueError):
-            continue
-        words = re.findall(r"[a-z][a-z0-9-]+", description.lower())
-        keywords = list(dict.fromkeys(w for w in words if w not in STOPWORDS))[:INDEX_KEYWORDS]
-        lines.append(f"- {name}: {', '.join(keywords)}")
-    if not lines:
+        kind = skill_kind(home, repo, name)
+        if kind == "builtin":
+            entries.append((name, BUILTIN_SKILLS[name]))
+        elif kind in HIDEABLE:
+            try:
+                meta = skill_meta.read_skill_frontmatter((home if kind == "user" else repo) / ".claude" / "skills" / name)
+            except (OSError, ValueError):
+                continue
+            entries.append((name, meta.get("description", "")))
+    if not entries:
         return ""
-    return "\n".join(["These skills show only their names. If one fits the task, call it by name with the Skill tool.",
-                      *lines])
+    # Each line gets an equal part of the cap, so many skills get shorter text, not fewer lines.
+    share = (HOOK_CAP - len(INDEX_HEADER)) // len(entries)
+    text = "\n".join([INDEX_HEADER, *(f"- {name}: {shorten(description, min(INDEX_CHARS, share - len(name) - 5))}"
+                                      for name, description in entries)])
+    return text if len(text) <= HOOK_CAP else text[:HOOK_CAP].rsplit("\n", 1)[0]
 
 
 def usage_report(home, repo, keep=()):
@@ -118,11 +175,7 @@ def usage_report(home, repo, keep=()):
     for name in sorted(loaded):
         bare = name.split(":", 1)[-1]
         count = used[name] + (used[bare] if bare != name and bare not in loaded else 0)
-        kind = ("plugin" if ":" in name
-                else "user" if (home / ".claude" / "skills" / name).exists()
-                else "project" if (repo / ".claude" / "skills" / name).exists()
-                else "builtin")
-        skills.append({"name": name, "kind": kind, "invocations": count})
+        skills.append({"name": name, "kind": skill_kind(home, repo, name), "invocations": count})
 
     try:
         installed = json.loads((home / ".claude" / "plugins" / "installed_plugins.json").read_text())
@@ -148,8 +201,9 @@ def usage_report(home, repo, keep=()):
         current = json.loads((repo / ".claude" / "settings.local.json").read_text())["skillOverrides"]
     except (OSError, ValueError, KeyError, TypeError):
         current = {}
-    overrides = {}
-    for name in (s["name"] for s in skills if s["kind"] != "plugin"):
+    overrides = {name: None for name, value in current.items()
+                 if value == "name-only" and skill_kind(home, repo, name) == "stale"}
+    for name in (s["name"] for s in skills if s["kind"] in HIDEABLE):
         if name in kept and current.get(name) == "name-only":
             overrides[name] = None
         elif name not in kept and name not in current:
@@ -168,7 +222,7 @@ def usage_report(home, repo, keep=()):
     return {"repo": str(repo), "days": USAGE_DAYS,
             "sessions": sum(1 for f in files if f.parent in folders),
             "skills": skills, "plugins": plugins,
-            "keep": sorted(s["name"] for s in skills if s["kind"] != "plugin" and s["name"] in kept),
+            "keep": sorted(s["name"] for s in skills if s["kind"] in HIDEABLE and s["name"] in kept),
             "patch": patch, "app_plugins": app_plugins}
 
 
@@ -180,7 +234,7 @@ def main():
     parser.add_argument("--repo", default=".", help="repo for --catalog (default: here)")
     parser.add_argument("--keep", nargs="+", default=[], help="glob patterns of skills that keep their description")
     parser.add_argument("--patch", action="store_true", help="print only the settings patch")
-    parser.add_argument("--index", action="store_true", help="print the keywords of the repo's name-only skills")
+    parser.add_argument("--index", action="store_true", help="print a short description of the repo's name-only skills")
     args = parser.parse_args()
     home = Path(args.home).expanduser()
     if args.index:

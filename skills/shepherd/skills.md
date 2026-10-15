@@ -122,6 +122,7 @@ Nothing can start a skill that is off.
    - It sets `"name-only"` in `skillOverrides` for each other user, project,
      and builtin skill.
    - It removes the `"name-only"` override of each kept skill.
+   - It removes each `"name-only"` override of a name that no skill has.
    - It sets `false` in `enabledPlugins` for each unused plugin that has a
      `key`. A plugin with a kept skill stays on.
    The patch does not change an `"off"` override. `skillOverrides` does not
@@ -129,8 +130,10 @@ Nothing can start a skill that is off.
 5. If the user says yes, run the command again with `--write`. Do not write
    anything without that yes.
 6. An agent cannot select a name-only skill from its description. A
-   SessionStart hook gives the agent keywords for each name-only skill. Run
-   `settings.py add-hook --file <the repo>/.claude/settings.local.json --event SessionStart --command 'python3 "$HOME/.claude/skills/shepherd/scripts/status.py" --index --repo "$CLAUDE_PROJECT_DIR"'`.
+   SessionStart hook gives the agent a short description of each name-only
+   skill. After `/clear` or a compaction, the agent does not have this text,
+   so the hook runs again at these events. Run
+   `settings.py add-hook --file <the repo>/.claude/settings.local.json --event SessionStart --matcher 'startup|clear|compact' --command 'python3 "$HOME/.claude/skills/shepherd/scripts/status.py" --index --repo "$CLAUDE_PROJECT_DIR"'`.
    Show the diff. If the user says yes, run it again with `--write`.
 7. Tell the user that the changes apply to new sessions.
 
