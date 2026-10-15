@@ -2,9 +2,13 @@
 """Capture corrections to shepherd and print the lessons that apply.
 
 turn     hook: append the prompt or the reply in stdin JSON to inbox/turns.jsonl,
-         and remind the agent to record a prompt that looks like a correction
-signal   record a correction; a clear repo lesson goes to lessons/repos/<slug>.md
-lessons  print the global and repo lessons; pull in the background at most hourly
+         and remind the agent to record a prompt that looks like a correction;
+         machine text (task notifications, system reminders, agent messages) is cut first
+signal   record a correction or an accepted review; a clear repo lesson goes to
+         lessons/repos/<slug>.md with a confidence, a citation, a seen count, and dates
+lessons  print the global lessons and the top repo lessons whose citation still exists;
+         archive repo lessons unused for 60 days; pull in the background at most hourly
+report   print the data for "consolidate shepherd lessons": precision, rejects, proposals
 step0    print the repo card (check commands, lint config, nested AGENTS.md), then
          the lessons; the card is cached until HEAD, the index, or a root file changes
 sync     pull or push, run detached by the commands above
@@ -37,6 +41,21 @@ CORRECTION = re.compile(
     re.IGNORECASE)
 REMINDER = ("shepherd: if this message corrects your work, record it with "
             "`capture.py signal` before you reply (learn.md, Record a correction).")
+# Text that the harness or another agent puts in a prompt. The user's own words stay.
+MACHINE_TEXT = re.compile(
+    r"\[SYSTEM NOTIFICATION\b.*?(?:\n\s*\n|\Z)"
+    r"|<(task-notification|system-reminder|cross-session-message|agent-message|teammate-message"
+    r"|side-sessions-event|ci-monitor-event)\b[^>]*>.*?(?:</\1>|\Z)", re.S)
+LESSON_CAP = 8
+EXPIRE_DAYS = 60
+REFRESH_DAYS = 7  # write a new used date at most weekly, so a print rarely makes a commit
+CONFIDENCE = {"reject": 0.6, "revert": 0.7, "restore": 0.8}
+CONFIDENCE_STEP = 0.1
+PROPOSE_AT = 3
+OVERLAP = 0.8
+ARCHIVE = "## Archive"
+PROPOSE = ("seen {n}x: if a lint rule or a hook can check this lesson, propose one to the user "
+           "(learn.md, Propose a check). Apply it only after a yes.")
 CARD_DIR = Path.home() / ".claude" / "shepherd" / "repo-cards"
 ROOT_FILES = ("package.json", "Makefile", "justfile", "pyproject.toml", "CLAUDE.md", "AGENTS.md")
 LOCKFILES = (("pnpm-lock.yaml", "pnpm"), ("yarn.lock", "yarn"), ("bun.lock", "bun"), ("bun.lockb", "bun"))
@@ -45,7 +64,10 @@ LINT_CONFIG = re.compile(
     r"^(\.?eslint[\w.]*|biome\.jsonc?|\.golangci\.ya?ml|\.?ruff\.toml|\.prettierrc[\w.]*|prettier\.config\.\w+"
     r"|tsconfig[\w.]*\.json|\.flake8|mypy\.ini|\.stylelintrc[\w.]*|rustfmt\.toml|clippy\.toml|deno\.jsonc?)$")
 CARD_LIMIT = 12
-LINE = re.compile(r"^- (?P<lesson>.+)\. \((?P<date>\d{4}-\d\d-\d\d), seen (?P<n>\d+)x\)$")
+LINE = re.compile(r"^- (?P<text>.+)\. \(conf (?P<conf>[\d.]+), seen (?P<seen>\d+)x, added (?P<added>\d{4}-\d\d-\d\d),"
+                  r" used (?P<used>\d{4}-\d\d-\d\d)(?:, cite (?P<cite>\S+))?\)$")
+OLD_LINE = re.compile(r"^- (?P<text>.+)\. \((?P<date>\d{4}-\d\d-\d\d), seen (?P<n>\d+)x\)$")
+CITE = re.compile(r"^(?P<path>[\w./@\[\]+-]*[\w\]])(?::(?P<line>\d+))?$")
 
 _NEVER_CUT = (r"(auth|authn|authz|authentication|authorization|permissions?|ownership|owner checks?"
               r"|tenant|scoping|balance|amount|money|state[- ](guard|check|machine)s?"
@@ -110,7 +132,11 @@ def turn(root):
         text = data.get("prompt") if event == "UserPromptSubmit" else data.get("last_assistant_message")
     except (ValueError, KeyError, TypeError, AttributeError):
         return
-    if not isinstance(text, str) or not text:
+    if not isinstance(text, str):
+        return
+    if event == "UserPromptSubmit":
+        text = MACHINE_TEXT.sub("", text).strip()
+    if not text:
         return
     if event == "UserPromptSubmit" and CORRECTION.search(text):
         print(REMINDER)  # UserPromptSubmit stdout reaches the model as context
@@ -120,15 +146,35 @@ def turn(root):
                   "text": text.encode()[:TEXT_BYTES].decode(errors="ignore")})
 
 
+def toplevel(repo_dir):
+    top = git("rev-parse", "--show-toplevel", cwd=repo_dir).stdout.strip()
+    return Path(top or repo_dir).resolve()
+
+
 def slug(repo_dir):
     url = git("remote", "get-url", "origin", cwd=repo_dir).stdout.strip()
     match = re.search(r"[:/]([^/:]+)/([^/]+?)(?:\.git)?/?$", url)
-    if match:
-        name = f"{match[1]}-{match[2]}"
-    else:
-        top = git("rev-parse", "--show-toplevel", cwd=repo_dir).stdout.strip()
-        name = Path(top or repo_dir).resolve().name
+    name = f"{match[1]}-{match[2]}" if match else toplevel(repo_dir).name
     return re.sub(r"[^A-Za-z0-9._-]", "-", name)
+
+
+def memory_dir(repo_dir):
+    """Claude Code's auto memory for the repo: one folder for the main checkout and its worktrees."""
+    common = git("rev-parse", "--path-format=absolute", "--git-common-dir", cwd=repo_dir).stdout.strip()
+    project = Path(common).parent if common else toplevel(repo_dir)
+    return Path.home() / ".claude" / "projects" / re.sub(r"[^A-Za-z0-9]", "-", str(project)) / "memory"
+
+
+def content_words(text):
+    return set(re.findall(r"[a-z][a-z0-9_]{3,}", text.lower()))
+
+
+def memory_overlap(text, memory, repo):
+    """The auto memory note that holds most of the lesson's words, when it holds OVERLAP of them or more."""
+    words = content_words(text) - content_words(repo.replace("-", " "))
+    notes = [p for p in sorted(memory.glob("*.md")) if p.name != "MEMORY.md"] if words else []
+    share, name = max(((len(words & content_words(read(p))) / len(words), p.name) for p in notes), default=(0, ""))
+    return name if share >= OVERLAP else None
 
 
 def spawn(root, direction):
@@ -169,24 +215,91 @@ def commit(root, path, message):
     return "committed"
 
 
-def add_lesson(root, repo, lesson):
-    path = root / "lessons" / "repos" / f"{repo}.md"
-    lines = path.read_text().splitlines() if path.exists() else []
-    for i, line in enumerate(lines):
-        match = LINE.match(line)
-        if match and match["lesson"].lower() == lesson.lower():
-            lines[i] = f"- {match['lesson']}. ({match['date']}, seen {int(match['n']) + 1}x)"
-            break
-    else:
-        if len(lines) >= REPO_CAP:
-            return f'lessons/repos/{repo}.md is full ({REPO_CAP} lines): suggest "consolidate shepherd lessons"'
-        lines.append(f"- {lesson}. ({datetime.date.today().isoformat()}, seen 1x)")
+def raised(conf, steps=1):
+    return round(min(1.0, conf + CONFIDENCE_STEP * steps), 1)
+
+
+def parse_lesson(line):
+    if match := LINE.match(line):
+        return {"text": match["text"], "conf": float(match["conf"]), "seen": int(match["seen"]),
+                "added": match["added"], "used": match["used"], "cite": match["cite"]}
+    if match := OLD_LINE.match(line):  # the format before 1.13; the next write migrates it
+        seen = int(match["n"])
+        return {"text": match["text"], "conf": raised(CONFIDENCE["reject"], seen - 1), "seen": seen,
+                "added": match["date"], "used": match["date"], "cite": None}
+    return {"raw": line}
+
+
+def format_lesson(lesson):
+    if "raw" in lesson:
+        return lesson["raw"]
+    cite = f", cite {lesson['cite']}" if lesson["cite"] else ""
+    return (f"- {lesson['text']}. (conf {lesson['conf']:.1f}, seen {lesson['seen']}x, "
+            f"added {lesson['added']}, used {lesson['used']}{cite})")
+
+
+def read_lessons(path):
+    """The active lessons and the archived lessons (the ones under ARCHIVE)."""
+    active, archived = [], []
+    part = active
+    for line in read(path).splitlines():
+        if line.strip() == ARCHIVE:
+            part = archived
+        elif line.strip():
+            part.append(parse_lesson(line))
+    return active, archived
+
+
+def write_lessons(path, active, archived):
+    lines = [format_lesson(lesson) for lesson in active]
+    if archived:
+        lines += ["", ARCHIVE, "", *(format_lesson(lesson) for lesson in archived)]
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text("\n".join(lines) + "\n")
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text("\n".join(lines) + "\n")
+    os.replace(tmp, path)
+
+
+def cited(top, cite):
+    """True when the cited file is in the repo and, for path:line, has that line."""
+    match = CITE.match(cite)
+    if not match:
+        return False
+    path = (top / match["path"]).resolve()
+    if not path.is_relative_to(top) or not path.is_file():
+        return False
+    return not match["line"] or len(read(path).splitlines()) >= int(match["line"])
+
+
+def citation(top, evidence):
+    """The file or file:line that starts the evidence, when that file is in the repo."""
+    first = (evidence.split() or [""])[0].rstrip(",;:").removeprefix("./")
+    return first if cited(top, first) else None
+
+
+def add_lesson(root, repo, lesson, kind, cite):
+    path = root / "lessons" / "repos" / f"{repo}.md"
+    active, archived = read_lessons(path)
+    today = datetime.date.today().isoformat()
+    found = next((l for l in active + archived if l.get("text", "").lower() == lesson.lower()), None)
+    if found:
+        if any(l is found for l in archived):  # recorded again: the archived lesson comes back
+            archived = [l for l in archived if l is not found]
+            active.append(found)
+        found.update(conf=raised(found["conf"]), seen=found["seen"] + 1, used=today, cite=cite or found["cite"])
+    elif len(active) >= REPO_CAP:
+        return f'lessons/repos/{repo}.md is full ({REPO_CAP} lines): suggest "consolidate shepherd lessons"'
+    else:
+        found = {"text": lesson, "conf": CONFIDENCE[kind], "seen": 1, "added": today, "used": today, "cite": cite}
+        active.append(found)
+    write_lessons(path, active, archived)
     status = commit(root, path, f"lesson({repo}): {lesson}")
-    note = f"lesson saved to lessons/repos/{repo}.md, {status} ({len(lines)}/{REPO_CAP} lines)"
-    if len(lines) >= REPO_CAP:
+    detail = f"conf {found['conf']:.1f}, seen {found['seen']}x, " + (f"cite {cite}" if cite else "no citation")
+    note = f"lesson saved to lessons/repos/{repo}.md ({detail}), {status} ({len(active)}/{REPO_CAP} lines)"
+    if len(active) >= REPO_CAP:
         note += '; now full: suggest "consolidate shepherd lessons"'
+    if found["seen"] >= PROPOSE_AT:
+        note += "\n" + PROPOSE.format(n=found["seen"])
     return note
 
 
@@ -194,20 +307,61 @@ def signal(root, args):
     if not full_clone(root):
         print("learning is off: shepherd is not running from a clone")
         return
-    repo = slug(Path(args.repo_dir))
+    repo_dir = Path(args.repo_dir)
+    repo = slug(repo_dir)
     lesson = (args.lesson or "").strip().rstrip(".")
     flag = args.flag or ("never-cut" if lesson and weakens_never_cut(lesson) else None)
-    entry = {"ts": now(), "repo": repo, "kind": args.kind, "rule": args.rule,
-             "evidence": (args.evidence.strip().splitlines() or [""])[0][:EVIDENCE_CHARS], "lesson": lesson}
+    evidence = (args.evidence.strip().splitlines() or [""])[0][:EVIDENCE_CHARS]
+    entry = {"ts": now(), "repo": repo, "kind": args.kind, "rule": args.rule, "evidence": evidence, "lesson": lesson}
+    if args.kind == "accept":
+        entry.update(posted=args.posted, dropped=args.dropped)
     if flag:
         entry["flag"] = flag
     append(root / "inbox" / "signals.jsonl", entry)
     if flag:
         print("signal recorded; lesson not applied: it weakens the never-cut list. Tell the user.")
     elif lesson and args.kind in LESSON_KINDS:
-        print(add_lesson(root, repo, lesson))
+        print(add_lesson(root, repo, lesson, args.kind, citation(toplevel(repo_dir), evidence)))
+        if note := memory_overlap(lesson, memory_dir(repo_dir), repo):
+            print(f"auto memory has a similar note ({note}). Keep the lesson only if it changes a shepherd rule "
+                  "or must sync to other machines (learn.md, Shepherd or auto memory). Tell the user.")
     else:
         print("signal recorded")
+
+
+def days_between(first, last):
+    return (datetime.date.fromisoformat(last) - datetime.date.fromisoformat(first)).days
+
+
+def rank(lesson):
+    return lesson.get("conf", 0.5), lesson.get("used", ""), lesson.get("seen", 1), lesson.get("added", "")
+
+
+def use_lessons(root, repo, top):
+    """Archive the unused lessons, then pick the top LESSON_CAP lessons whose citation still exists.
+
+    A lesson is unused when its used date is EXPIRE_DAYS older than the newest used date in the
+    file, so a repo that nobody opens keeps its lessons."""
+    path = root / "lessons" / "repos" / f"{repo}.md"
+    active, archived = read_lessons(path)
+    dated = [lesson["used"] for lesson in active if "used" in lesson]
+    clock = max(dated, default="")
+    expired = [l for l in active if "used" in l and days_between(l["used"], clock) > EXPIRE_DAYS]
+    active = [l for l in active if not any(l is e for e in expired)]
+    valid = [l for l in active if not l.get("cite") or cited(top, l["cite"])]
+    shown = sorted(valid, key=rank, reverse=True)[:LESSON_CAP]
+    today = datetime.date.today().isoformat()
+    marked = [l for l in shown if "used" in l and days_between(l["used"], today) >= REFRESH_DAYS]
+    for lesson in marked:
+        lesson["used"] = today
+    if expired or marked:
+        write_lessons(path, active, archived + expired)
+        changes = [f"archive {len(expired)} unused" if expired else "", f"mark {len(marked)} used" if marked else ""]
+        commit(root, path, f"lesson({repo}): {', '.join(filter(None, changes))}")
+    hidden = [f"{len(valid) - len(shown)} below the cap of {LESSON_CAP}" if len(valid) > len(shown) else "",
+              f"{len(active) - len(valid)} with a stale citation" if len(active) > len(valid) else "",
+              f"{len(expired)} archived now, unused for {EXPIRE_DAYS} days" if expired else ""]
+    return shown, list(filter(None, hidden))
 
 
 def lessons(root, repo_dir):
@@ -224,12 +378,64 @@ def lessons(root, repo_dir):
         spawn(root, "pull")
     repo = slug(Path(repo_dir))
     parts = []
-    for title, path in (("global", root / "lessons" / "global.md"), (repo, root / "lessons" / "repos" / f"{repo}.md")):
-        text = path.read_text().strip() if path.exists() else ""
-        if text:
-            parts.append(f"Lessons ({title}):\n{text}")
+    if text := read(root / "lessons" / "global.md").strip():
+        parts.append(f"Lessons (global):\n{text}")
+    shown, hidden = use_lessons(root, repo, toplevel(repo_dir))
+    if shown:
+        parts.append(f"Lessons ({repo}), by confidence and recent use:\n" + "\n".join(map(format_lesson, shown)))
+    if hidden:
+        parts.append(f"Not shown: {', '.join(hidden)}. To review them, say \"consolidate shepherd lessons\".")
     if parts:
         print("\n\n".join(parts))
+
+
+def report(root, repo_dir):
+    """The counts that "consolidate shepherd lessons" starts from. It changes no file."""
+    if not full_clone(root):
+        print("learning is off: shepherd is not running from a clone")
+        return
+    since = read(root / "inbox" / "last-consolidation").strip()
+    signals = []
+    for line in read(root / "inbox" / "signals.jsonl").splitlines():
+        try:
+            entry = json.loads(line)
+        except ValueError:
+            continue
+        if entry.get("ts", "")[:10] >= since:
+            signals.append(entry)
+    kinds = {kind: sum(s.get("kind") == kind for s in signals) for kind in ("reject", "revert", "restore", "accept")}
+    out = [f"Signals since {since or 'the start'}: {len(signals)} ("
+           + ", ".join(f"{kind} {n}" for kind, n in kinds.items()) + ")"]
+    reviews = [s for s in signals if s.get("kind") == "accept" and isinstance(s.get("posted"), int)]
+    posted = sum(s["posted"] for s in reviews)
+    drafted = posted + sum(s.get("dropped") or 0 for s in reviews)
+    out.append(f"Review precision: {posted}/{drafted} drafted findings posted ({posted / drafted:.0%}) "
+               f"in {len(reviews)} reviews" if drafted else "Review precision: no accepted reviews")
+    rejects = {}
+    for s in signals:
+        if s.get("kind") == "reject":
+            rejects[s.get("rule", "")] = rejects.get(s.get("rule", ""), 0) + 1
+    narrow = [f"- {rule} ({n}x)" for rule, n in sorted(rejects.items(), key=lambda r: -r[1]) if n >= 3]
+    out += ["Rules with 3 or more rejects (narrow them):", *narrow] if narrow else []
+    flagged = [f"- {s.get('repo')}: {s.get('lesson') or s.get('evidence')}" for s in signals if s.get("flag")]
+    out += ["Never-cut flags (never apply them):", *flagged] if flagged else []
+    repo = slug(Path(repo_dir))
+    top, memory = toplevel(repo_dir), memory_dir(repo_dir)
+    proposals, stale, duplicates = [], [], []
+    for path in sorted((root / "lessons" / "repos").glob("*.md")):
+        active, archived = read_lessons(path)
+        out.append(f"Lessons in {path.stem}: {len(active)} active, {len(archived)} archived")
+        proposals += [f"- {path.stem}: {l['text']} ({l['seen']}x)" for l in active if l.get("seen", 0) >= PROPOSE_AT]
+        if path.stem != repo:
+            continue
+        stale += [f"- {l['text']} (cite {l['cite']})" for l in active if l.get("cite") and not cited(top, l["cite"])]
+        for lesson in active:
+            if "text" in lesson and (note := memory_overlap(lesson["text"], memory, repo)):
+                duplicates.append(f"- {lesson['text']} ({note})")
+    out += [f"Check proposals: seen {PROPOSE_AT}x or more (learn.md, Propose a check):", *proposals] if proposals else []
+    out += [f"Stale citations in {repo} (fix the citation or drop the lesson):", *stale] if stale else []
+    out += [f"Auto memory has these {repo} lessons (learn.md, Shepherd or auto memory):", *duplicates] if duplicates else []
+    print("\n".join(out))
 
 
 def read(path):
@@ -329,14 +535,20 @@ def main():
     sig.add_argument("--evidence", required=True, help="file:line and a one-line paraphrase; no secrets or code")
     sig.add_argument("--lesson")
     sig.add_argument("--flag", choices=["never-cut"])
+    sig.add_argument("--posted", type=int, help="accept: the count of findings posted")
+    sig.add_argument("--dropped", type=int, help="accept: the count of drafted findings not posted")
     sig.add_argument("--repo-dir", default=".")
     les = sub.add_parser("lessons", parents=[common])
     les.add_argument("--repo-dir", default=".")
+    rep = sub.add_parser("report", parents=[common])
+    rep.add_argument("--repo-dir", default=".")
     step0 = sub.add_parser("step0", parents=[common])
     step0.add_argument("--repo-dir", default=".")
     syn = sub.add_parser("sync", parents=[common])
     syn.add_argument("direction", choices=["pull", "push"])
     args = parser.parse_args()
+    if args.action == "signal" and args.kind == "accept" and (args.posted is None or args.dropped is None):
+        sig.error("accept needs --posted N and --dropped N: the counts of findings posted and not posted")
     root = args.root.resolve()
 
     if args.action == "turn":
@@ -349,6 +561,8 @@ def main():
         signal(root, args)
     elif args.action == "lessons":
         lessons(root, args.repo_dir)
+    elif args.action == "report":
+        report(root, args.repo_dir)
     elif args.action == "step0":
         print(repo_card(args.repo_dir))
         lessons(root, args.repo_dir)
