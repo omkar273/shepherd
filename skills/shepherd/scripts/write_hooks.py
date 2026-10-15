@@ -2,10 +2,9 @@
 """Claude Code hooks that hold write mode to code/write.md.
 
 stop: Stop. If the turn wrote a file in the git repo (any tool: the file's
-      mtime is after the prompt), blocks the stop until the turn did
-      section 3: the refine pass (for over 20 added lines), the repo's checks
-      after the last write, and the diff report. It blocks once: the next
-      stop in a row always goes through.
+      mtime is after the prompt), blocks the stop until the repo's checks ran
+      after the last write. It blocks once: the next stop in a row always
+      goes through.
 lint: PostToolUse on Edit|Write|MultiEdit. Runs the linter that the repo
       configures for the edited file and returns only its findings, the
       findings on the edited lines first.
@@ -22,9 +21,6 @@ from datetime import datetime
 from pathlib import Path
 
 WRITE_MD = Path(__file__).resolve().parent.parent / "code" / "write.md"
-REFINE = "Refine pass."
-REFINE_MIN_LINES = 20
-REPORT = ("Rung", "Changed", "Lean", "Fixed alongside", "Follow-ups", "Not checked")
 SCRIPT_CHECKS = ("lint", "typecheck", "type-check", "check", "test")
 LOCKFILES = (("pnpm-lock.yaml", "pnpm"), ("yarn.lock", "yarn"), ("bun.lock", "bun"), ("bun.lockb", "bun"))
 JS_SUFFIXES = {".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".mts", ".cts", ".svelte", ".vue"}
@@ -47,7 +43,7 @@ def seconds(timestamp):
 
 
 def turn(transcript, prompt_id):
-    """The prompt's timestamp, then the main thread's (time, tool, input) calls and its text."""
+    """The prompt's timestamp, and the main thread's (time, tool, input) calls since then."""
     with open(transcript, "rb") as f:
         f.seek(0, 2)
         f.seek(max(0, f.tell() - TRANSCRIPT_TAIL_BYTES))
@@ -64,34 +60,24 @@ def turn(transcript, prompt_id):
     # Older versions do not send prompt_id: the prompt is then the last user text.
     start = ([i for i in users if entries[i].get("promptId") == prompt_id][:1]
              or [i for i in users if isinstance((entries[i].get("message") or {}).get("content"), str)][-1:])[0]
-    calls, text = [], []
+    calls = []
     for entry in entries[start + 1:]:
         content = (entry.get("message") or {}).get("content")
         if entry.get("type") != "assistant" or not isinstance(content, list):
             continue
-        for block in content:
-            if block.get("type") == "tool_use":
-                calls.append((seconds(entry["timestamp"]), block.get("name"), block.get("input") or {}))
-            elif block.get("type") == "text":
-                text.append(block.get("text", ""))
-    return seconds(entries[start]["timestamp"]), calls, "\n".join(text)
+        calls += [(seconds(entry["timestamp"]), block.get("name"), block.get("input") or {})
+                  for block in content if block.get("type") == "tool_use"]
+    return seconds(entries[start]["timestamp"]), calls
 
 
 def written(root, prompt_time):
-    """{file: mtime} of the repo files that the turn wrote, by any tool, and the lines that they add."""
+    """{file: mtime} of the repo files that the turn wrote, with any tool."""
     base = git(root, "rev-list", "-1", f"--before=@{int(prompt_time)}", "HEAD").stdout.strip()
     listed = git(root, "diff", "--name-only", "-z", base) if base else git(root, "ls-files", "-z")
     names = set(listed.stdout.split("\0") + git(root, "ls-files", "-z", "--others", "--exclude-standard")
                 .stdout.split("\0")) - {""}
     files = {name: (root / name).stat().st_mtime for name in names if (root / name).is_file()}
-    files = {name: mtime for name, mtime in files.items() if mtime >= prompt_time}
-    added = {}
-    if base and files:
-        for row in git(root, "diff", "--numstat", base, "--", *files).stdout.splitlines():
-            plus, _, name = row.split("\t", 2)
-            added[name] = int(plus) if plus.isdigit() else 0
-    lines = sum(added[name] if name in added else len((root / name).read_bytes().splitlines()) for name in files)
-    return files, lines
+    return {name: mtime for name, mtime in files.items() if mtime >= prompt_time}
 
 
 def repo_checks(root):
@@ -121,31 +107,21 @@ def stop(data):
     if data.get("stop_hook_active"):
         return None
     root = git_root(data["cwd"])
-    if root is None:
+    checks = repo_checks(root) if root else []
+    if not checks:
         return None
-    prompt_time, calls, text = turn(Path(data["transcript_path"]), data.get("prompt_id"))
-    text += "\n" + (data.get("last_assistant_message") or "")
-    files, lines = written(root, prompt_time)
+    prompt_time, calls = turn(Path(data["transcript_path"]), data.get("prompt_id"))
+    files = written(root, prompt_time)
     if not files:
         return None
-    first, last = min(files.values()), max(files.values())
-    refined = any(name in ("Agent", "Task") and REFINE in (args.get("prompt") or "") and when >= first
-                  for when, name, args in calls)
+    last = max(files.values())
     ran = [args.get("command") or "" for when, name, args in calls if name == "Bash" and when >= last]
-    missing = [shown for shown, pattern in repo_checks(root) if not any(pattern.search(c) for c in ran)]
-    labels = [label for label in REPORT if not re.search(rf"\b{label}[*_]*:", text, re.I)]
-    steps = []
-    if lines > REFINE_MIN_LINES and not refined:
-        steps.append("Do the refine pass of step 1.")
-    if missing:
-        steps.append(f"Run these checks after your last edit: {', '.join(missing)}.")
-    if labels:
-        steps.append(f"Write the report of step 4. These lines are missing: {', '.join(labels)}.")
-    if not steps:
+    missing = [shown for shown, pattern in checks if not any(pattern.search(c) for c in ran)]
+    if not missing:
         return None
     return {"decision": "block", "reason": (
-        f"Do section 3 of {WRITE_MD} before you stop. " + " ".join(steps) + " Fix a correctness gap. "
-        "Do not move it to Follow-ups or Not checked. If a check cannot run, name it under Not checked.")}
+        f"Run the repo's checks after your last edit (step 4 of section 3 in {WRITE_MD}): "
+        f"{', '.join(missing)}. Fix what they find. If a check cannot run, name it under Not checked.")}
 
 
 def has_ruff_config(folder):
