@@ -242,8 +242,10 @@ as a diff and installed only on your yes; each one does nothing if it fails:
 It also offers auto-compaction at 70% of the window
 (`CLAUDE_AUTOCOMPACT_PCT_OVERRIDE`) and a status line with context %, which
 tells the warning the window size (it assumes 200k without one).
-Say **"prune skills for this repo"** to see which skills and plugins a repo
-never used in 30 days and turn them down in its `.claude/settings.local.json`.
+Say **"prune skills for this repo"** to show only the names of the skills a
+repo does not need, in its `.claude/settings.local.json`. Skills keep their
+descriptions when shepherd routes work to them, when the repo used them in the
+last 30 days, or when you name them. Say **"unhide X"** to bring one back.
 
 ### Learning from corrections
 

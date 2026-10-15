@@ -55,7 +55,9 @@ shepherd on its own (with `npx skills` or as a plugin). In that case:
 10. Run `state.py stamp --repo <repo>`.
 11. Report the version from `claude --version`, and offer `claude update`.
 12. List the links that setup made, and say: restart Claude Code to load the
-    new skills. Offer "prune skills" for the repos that the user works in most.
+    new skills.
+13. Ask the user which repos they work in most. Offer the Prune flow one time
+    for each of these repos.
 
 ## Update: "update my skills"
 
@@ -94,19 +96,47 @@ Run `status.py`. To compare vendored skills with their sources, add
 
 ## Prune: "prune skills for this repo"
 
-1. Run `status.py --catalog --repo <the repo>`. It reads the last 30 days of
-   transcripts for that repo locally. It reports only names and counts. Never
-   quote transcript text.
-2. Show the `unused_skills` and `unused_plugins`. Group them by `kind`.
-3. Propose these changes to `<the repo>/.claude/settings.local.json`:
-   - `skillOverrides`: `"name-only"` for unused `user`, `project`, and
-     `builtin` skills. The user can ask for `"off"` instead.
-   - `enabledPlugins`: `false` for each unused plugin that has a `key`.
-   Plugins without a `key` came with the desktop app. Report them, but do not
-   propose a change for them. `skillOverrides` does not apply to plugin skills.
-4. Run `settings.py merge --file <the repo>/.claude/settings.local.json
-   --json '<the proposal>'`. Show the diff. If the user says yes, run it again
-   with `--write`. Do not write anything without that yes.
+Each turn sends the name and the description of each skill. Prune keeps the
+description only for the skills that the repo needs. The other skills show
+only their names. An agent can still call such a skill by its name.
+
+Do not set a skill to `"off"`. An agent selects a skill from its description.
+Nothing can start a skill that is off.
+
+1. Ask the user which other skills the repo needs now. For example, SEO work
+   needs `seo-*` and `keyword-*`. Use these glob patterns as `<patterns>`. If
+   the user names no skills, do not use `--keep`.
+2. Run `status.py --catalog --repo <the repo> --keep <patterns>`. It reads the
+   last 30 days of transcripts for that repo locally. It reports only names
+   and counts. Never quote transcript text.
+3. Show the user these keys of the report:
+   - `keep`: the user, project, and builtin skills that keep their
+     descriptions. These are shepherd, the skills that the routing table in
+     `SKILL.md` names, the skills that the repo used, and the `--keep` matches.
+   - `app_plugins`: each unused plugin that has no `key`, with its number of
+     skills. These plugins came with the desktop app, and a settings file
+     cannot turn them off. Tell the user to turn them off in the plugin
+     settings of the Claude app. That change applies to all repos.
+4. Run `settings.py merge --file <the repo>/.claude/settings.local.json --json "$(python3 <shepherd>/scripts/status.py --catalog --repo <the repo> --keep <patterns> --patch)"`.
+   Show the diff. The patch makes these changes:
+   - It sets `"name-only"` in `skillOverrides` for each other user, project,
+     and builtin skill.
+   - It removes the `"name-only"` override of each kept skill.
+   - It sets `false` in `enabledPlugins` for each unused plugin that has a
+     `key`. A plugin with a kept skill stays on.
+   The patch does not change an `"off"` override. `skillOverrides` does not
+   apply to plugin skills.
+5. If the user says yes, run the command again with `--write`. Do not write
+   anything without that yes. Tell the user that the change applies to new
+   sessions.
+
+## Unhide: "unhide X", "show the description of X"
+
+1. Run `settings.py merge --file <the repo>/.claude/settings.local.json --json '{"skillOverrides": {"X": null}}'`.
+   The `null` removes the override of X. Show the diff.
+2. If the user says yes, run the command again with `--write`.
+3. Tell the user: if the repo does not use X, the next prune sets X to
+   `"name-only"` again. To prevent this, add X to `--keep` in that prune.
 
 ## Packs: "install the <pack> pack", "remove a pack", "what packs are there"
 

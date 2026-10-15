@@ -80,6 +80,11 @@ class SettingsTests(Base):
         self.assertEqual(json.loads(self.settings.read_text())["skillOverrides"],
                          {"a": "off", "b": "name-only"})
 
+    def test_merge_null_removes_key(self):
+        self.settings.write_text(json.dumps({"skillOverrides": {"a": "name-only", "b": "off"}}))
+        self.merge({"skillOverrides": {"a": None, "c": None}}, "--write")
+        self.assertEqual(json.loads(self.settings.read_text())["skillOverrides"], {"b": "off"})
+
     def test_merge_to_file(self):
         local = self.home / "repo" / ".claude" / "settings.local.json"
         self.merge({"enabledPlugins": {"x@y": False}}, "--file", str(local), "--write")
@@ -204,20 +209,38 @@ class CatalogUsageTests(Base):
         os.utime(path, (stamp, stamp))
         return path
 
-    def report(self):
-        result = run("status.py", self.home, "--catalog", "--repo", str(self.repo))
+    def report(self, *args):
+        result = run("status.py", self.home, "--catalog", "--repo", str(self.repo), *args)
         return json.loads(result.stdout)
 
     def skill(self, report, name):
         return next(s for s in report["skills"] if s["name"] == name)
 
-    def test_catalog_marks_unused(self):
+    def test_catalog_name_only_for_unused(self):
         self.session([listing("shepherd", "grilling", "prototype"), tool_use("Skill", skill="shepherd"),
                       prompt("<command-name>/grilling</command-name>")])
         report = self.report()
         self.assertEqual(report["sessions"], 1)
-        self.assertEqual(report["unused_skills"], ["prototype"])
+        self.assertEqual(report["keep"], ["grilling", "shepherd"])
+        self.assertEqual(report["patch"], {"skillOverrides": {"prototype": "name-only"}})
         self.assertEqual(self.skill(report, "shepherd")["invocations"], 1)
+
+    def test_catalog_keeps_routed_and_listed_skills(self):
+        local = self.repo / ".claude" / "settings.local.json"
+        local.parent.mkdir()
+        local.write_text(json.dumps({"skillOverrides": {"seo-audit": "name-only", "grilling": "off"}}))
+        self.session([listing("shepherd", "brainstorming", "executing-plans", "seo-audit", "grilling", "wizard",
+                              "superpowers:executing-plans", "superpowers:writing-plans")])
+        self.session([tool_use("Skill", skill="superpowers:executing-plans")])
+        report = self.report("--keep", "seo-*")
+        self.assertEqual(report["keep"], ["brainstorming", "executing-plans", "seo-audit", "shepherd"])
+        self.assertEqual(report["patch"], {"skillOverrides": {"seo-audit": None, "wizard": "name-only"}})
+        self.assertEqual(report["app_plugins"], {})
+
+    def test_catalog_patch_only(self):
+        self.session([listing("grilling")])
+        output = run("status.py", self.home, "--catalog", "--repo", str(self.repo), "--patch").stdout
+        self.assertEqual(json.loads(output), {"skillOverrides": {"grilling": "name-only"}})
 
     def test_catalog_kinds(self):
         (self.home / ".claude" / "skills" / "shepherd").mkdir(parents=True)
@@ -233,7 +256,7 @@ class CatalogUsageTests(Base):
                       tool_use("Skill", skill="brainstorming")])
         report = self.report()
         self.assertEqual(self.skill(report, "superpowers:brainstorming")["invocations"], 1)
-        self.assertEqual(report["unused_plugins"], ["design"])
+        self.assertEqual(report["app_plugins"], {"design": 1})
 
     def test_catalog_plugin_agents_and_mcp_count(self):
         plugins = self.home / ".claude" / "plugins"
@@ -243,7 +266,7 @@ class CatalogUsageTests(Base):
         self.session([listing("eng:debug", "pt:audit"), tool_use("Agent", subagent_type="eng:reviewer"),
                       tool_use("mcp__plugin_pt_server__fetch")])
         report = self.report()
-        self.assertEqual(report["unused_plugins"], [])
+        self.assertEqual((report["patch"], report["app_plugins"]), ({}, {}))
         self.assertEqual(report["plugins"], [{"name": "eng", "key": None, "invocations": 1},
                                              {"name": "pt", "key": "pt@market", "invocations": 1}])
 
@@ -251,7 +274,7 @@ class CatalogUsageTests(Base):
         self.session([listing("grilling"), tool_use("Skill", skill="grilling")], days_ago=40)
         self.session([listing("grilling")])
         report = self.report()
-        self.assertEqual((report["sessions"], report["unused_skills"]), (1, ["grilling"]))
+        self.assertEqual((report["sessions"], report["patch"]), (1, {"skillOverrides": {"grilling": "name-only"}}))
 
     def test_catalog_includes_worktrees_and_subagents_not_siblings(self):
         self.session([listing("grilling", "pr")])
@@ -260,8 +283,18 @@ class CatalogUsageTests(Base):
         self.session([listing("zzz")], project=f"{self.slug}-old")
         report = self.report()
         self.assertEqual([s["name"] for s in report["skills"]], ["grilling", "pr"])
-        self.assertEqual(report["unused_skills"], [])
+        self.assertEqual(report["patch"], {})
         self.assertEqual(report["sessions"], 2)
+
+    def test_catalog_turns_off_unused_keyed_plugin(self):
+        plugins = self.home / ".claude" / "plugins"
+        plugins.mkdir(parents=True)
+        (plugins / "installed_plugins.json").write_text(json.dumps(
+            {"plugins": {"pt@market": [], "sp@market": []}}))
+        self.session([listing("pt:audit", "sp:systematic-debugging", "eng:debug", "eng:standup")])
+        report = self.report()
+        self.assertEqual(report["patch"], {"enabledPlugins": {"pt@market": False}})
+        self.assertEqual(report["app_plugins"], {"eng": 2})
 
     def test_catalog_no_transcript_text(self):
         self.session([listing("grilling"), prompt("SECRET-PROMPT-TEXT"),
