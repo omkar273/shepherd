@@ -14,8 +14,9 @@ Do these steps first, before you read code:
 3. Go to "Merge". Do not read the diff, the changed files, or the `lang/`
    files in this session. The lenses read them.
 
-Do not do the lenses yourself when the agent is available. A review in this
-session costs more, and its findings have no confidence scores to merge.
+Spawn the agent even if you already read the diff. Do not do the lenses
+yourself when the agent is available. Its parallel lenses find more, and its
+confidence scores let the merge drop false findings.
 
 Run the lenses yourself only if `shepherd:reviewer` is not in your agent
 list, or if it fails. Then gather the context as in the next section. Read
