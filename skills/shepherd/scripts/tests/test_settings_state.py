@@ -330,6 +330,16 @@ class CatalogUsageTests(Base):
         self.assertTrue(lines[3].startswith("- simplify: Review the changed code"))
         self.assertEqual(len(lines), 4)
 
+    def test_frontmatter_name_finds_its_folder(self):
+        self.write_overrides({"deploy": "name-only"})
+        folder = self.repo / ".claude" / "skills" / "deploy-staging"
+        folder.mkdir(parents=True)
+        (folder / "SKILL.md").write_text("---\nname: deploy\ndescription: Deploy to staging.\n---\n")
+        self.session([listing("deploy")])
+        report = self.report()
+        self.assertEqual((self.skill(report, "deploy")["kind"], report["patch"]), ("project", {}))
+        self.assertEqual(self.index().splitlines()[1:], ["- deploy: Deploy to staging."])
+
     def test_index_stays_under_hook_cap(self):
         names = [f"skill-{i:03d}" for i in range(120)]
         self.write_overrides(dict.fromkeys(names, "name-only"))

@@ -14,6 +14,7 @@ name-only, for a SessionStart hook."""
 import argparse
 import datetime
 import fnmatch
+import functools
 import json
 import os
 import re
@@ -119,13 +120,28 @@ def routed_skills():
     return {"shepherd", *re.findall(r"`([a-z0-9-]+)`", table)}
 
 
-def skill_kind(home, repo, name):
-    """"stale" when no skill folder or builtin has the name, so an override of it does nothing."""
-    return ("plugin" if ":" in name
-            else "user" if (home / ".claude" / "skills" / name).exists()
-            else "project" if (repo / ".claude" / "skills" / name).exists()
-            else "builtin" if name in BUILTIN_SKILLS
-            else "stale")
+@functools.cache
+def named_folders(base):
+    """The skill folders in base, by the name in their frontmatter."""
+    names = {}
+    for skill_md in sorted(base.glob("*/SKILL.md")):
+        try:
+            names.setdefault(skill_meta.read_skill_frontmatter(skill_md.parent).get("name"), skill_md.parent)
+        except (OSError, ValueError):
+            continue
+    return names
+
+
+def locate_skill(home, repo, name):
+    """The kind and folder of a skill. A frontmatter name lists a skill as well as its folder name.
+    "stale" when no skill folder or builtin has the name, so an override of it does nothing."""
+    if ":" in name:
+        return "plugin", None
+    for kind, base in (("user", home / ".claude" / "skills"), ("project", repo / ".claude" / "skills")):
+        folder = base / name if (base / name).exists() else named_folders(base).get(name)
+        if folder:
+            return kind, folder
+    return ("builtin" if name in BUILTIN_SKILLS else "stale"), None
 
 
 def shorten(text, limit):
@@ -142,12 +158,12 @@ def hidden_index(home, repo):
         return ""
     entries = []
     for name in sorted(n for n, value in overrides.items() if value == "name-only"):
-        kind = skill_kind(home, repo, name)
+        kind, folder = locate_skill(home, repo, name)
         if kind == "builtin":
             entries.append((name, BUILTIN_SKILLS[name]))
-        elif kind in HIDEABLE:
+        elif folder:
             try:
-                meta = skill_meta.read_skill_frontmatter((home if kind == "user" else repo) / ".claude" / "skills" / name)
+                meta = skill_meta.read_skill_frontmatter(folder)
             except (OSError, ValueError):
                 continue
             entries.append((name, meta.get("description", "")))
@@ -175,7 +191,7 @@ def usage_report(home, repo, keep=()):
     for name in sorted(loaded):
         bare = name.split(":", 1)[-1]
         count = used[name] + (used[bare] if bare != name and bare not in loaded else 0)
-        skills.append({"name": name, "kind": skill_kind(home, repo, name), "invocations": count})
+        skills.append({"name": name, "kind": locate_skill(home, repo, name)[0], "invocations": count})
 
     try:
         installed = json.loads((home / ".claude" / "plugins" / "installed_plugins.json").read_text())
@@ -202,7 +218,7 @@ def usage_report(home, repo, keep=()):
     except (OSError, ValueError, KeyError, TypeError):
         current = {}
     overrides = {name: None for name, value in current.items()
-                 if value == "name-only" and skill_kind(home, repo, name) == "stale"}
+                 if value == "name-only" and locate_skill(home, repo, name)[0] == "stale"}
     for name in (s["name"] for s in skills if s["kind"] in HIDEABLE):
         if name in kept and current.get(name) == "name-only":
             overrides[name] = None
