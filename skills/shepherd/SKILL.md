@@ -1,6 +1,6 @@
 ---
 name: shepherd
-description: Use when writing, changing, or reviewing code in any repo - implementing a feature or fix, refactoring, reviewing a teammate's pull request, a branch, or a diff (before or alongside code-review), debugging, planning a multi-file change, or wrapping up a change before saying it is done - whenever about to add a helper, wrapper, interface, layer, option, defensive check, or test the task did not ask for, and when setting up, updating, adding, or checking skills.
+description: Use when you write, change, or review code or docs in a repo. That includes a feature, a fix, a refactor, a debug session, and a plan for a multi-file change. Use it to review a teammate's pull request, branch, or diff (before or with code-review), and before you say a change is done. Use it before you add a helper, wrapper, interface, layer, option, defensive check, or test that the task did not ask for. Use it to set up, update, add, or check skills.
 hooks:
   UserPromptSubmit:
     - hooks:
@@ -14,41 +14,42 @@ hooks:
 
 # Shepherd
 
-One entry point. Route the task to the section or skill that owns it, then
-follow that. The smallest change that does the job, wired into the code that
-already exists. Subtract before you add.
+Shepherd is one entry point. Route the task to the section or skill that owns
+it, then follow that section or skill. Make the smallest change that does the
+job, and wire it into the code that is already there. Cut before you add.
 
 ## Step 0, every time
 
-1. Read the repo's root `CLAUDE.md` / `AGENTS.md`, then every `AGENTS.md` on
-   the path from the root down to each directory you touch. Read its lint
-   config and its check scripts (Makefile, `package.json` scripts, CI
-   workflow). Repo rules beat this skill.
-2. Run `python3 <shepherd>/hooks/capture.py lessons` (`<shepherd>` is this
-   skill's folder) and follow what it prints. Precedence: repo docs, then the
-   never-cut list in `code/defensive.md`, then lessons, then this skill.
-3. Docs drift. Before relying on a file, helper, or mechanism a doc names,
-   confirm it exists in the code.
-4. Recorded decisions (ADRs, architecture notes) beat the cut list: don't flag
-   what one justifies. A new package or module boundary is itself a decision;
-   don't create one inside a feature change unless the user or a recorded
-   decision asks for it.
-5. If the repo ships its own build or review skill or workflow (for example
-   `.agents/skills/review`), follow its process and report format; shepherd's
-   checks run inside it.
+1. Read the repo's root `CLAUDE.md` / `AGENTS.md`. Then read each `AGENTS.md`
+   on the path from the root to each directory in the change. Then read the
+   lint config and the check scripts (Makefile, `package.json` scripts, CI
+   workflow). Repo rules win over this skill.
+2. Run `python3 <shepherd>/hooks/capture.py lessons` (`<shepherd>` is the
+   folder of this skill). Do what it prints. The order of priority is: repo
+   docs, then the never-cut list in `code/defensive.md`, then lessons, then
+   this skill.
+3. Docs go out of date. Before you use a file, helper, or mechanism that a doc
+   names, make sure that it is in the code.
+4. Recorded decisions (ADRs, architecture notes) win over the cut list. Do not
+   flag what a recorded decision justifies. A new package or module boundary
+   is a decision too. Add one in a feature change only when the user or a
+   recorded decision asks for it.
+5. If the repo has its own build or review skill or workflow (for example
+   `.agents/skills/review`), follow its process and report format. Run
+   shepherd's checks inside it.
 6. Route:
 
 | Situation | Read or use |
 |---|---|
 | Writing or changing code | `code/write.md`, `code/defensive.md` |
 | Reviewing a PR or branch | `code/review.md`, `code/defensive.md` |
-| Audit a repo or change for bugs, risk, scale, tests, bloat; list deferred shortcuts | `code/audit.md` |
+| Auditing a repo or a change (bugs, risk, scale, tests, bloat), or listing deferred shortcuts | `code/audit.md` |
 | `.go` files or `go.mod` | + `lang/go.md` |
 | `.ts` files | + `lang/typescript.md` |
 | `.svelte`, `.svelte.ts` | + `lang/typescript.md`, `lang/svelte.md` |
 | `.tsx`, `.jsx`, React imports | + `lang/typescript.md`, `lang/react.md` |
 | Any other language | the code files only |
-| Planning a multi-file or unclear change | the superpowers `brainstorming` skill, then `writing-plans`; when the repo uses Matt's issue flow, suggest the user run `/to-spec` (user-invoked only) |
+| Planning a multi-file or unclear change | the superpowers `brainstorming` skill, then `writing-plans`. If the repo uses Matt's issue flow, suggest `/to-spec` to the user. Only the user can start it. |
 | A bug or a failing test | the superpowers `systematic-debugging` skill |
 | About to say a change is done | the superpowers `verification-before-completion` skill |
 | "Set up", "update", "add" or "status" for skills | `skills.md` |
@@ -58,46 +59,57 @@ already exists. Subtract before you add.
 | A long, slow, or messy session | `context.md` |
 | "Consolidate shepherd lessons", "revert shepherd <commit>" | `learn.md` |
 
-If a superpowers skill above is not installed, do its step yourself: settle the
-goal and a short plan before a multi-file edit, find the root cause before
-fixing, and run the checks and read their output before saying done.
+If a superpowers skill above is not installed, do its step yourself:
 
-Read a `lang/` file before writing the first line in that language. Never read
-a `lang/` file that doesn't match the change. For a language with no file, use
-the code files and the repo's own docs; don't invent language rules.
+- Before an edit to many files, decide the goal and write a short plan.
+- Before a fix, find the root cause.
+- Before you say done, run the checks and read their output.
+
+Read the `lang/` file before you write the first line in that language. Read
+only the `lang/` files that match the change. If a language has no file, use
+the code files and the repo's own docs. Do not make up rules for a language.
 
 ## Always on
 
-- Read a web page as text first; screenshot only for a visual check, at scale
-  0.5 or less. Turn PDFs into text with `pdftotext`.
-- View source with Read and search with Grep, not `cat` or `sed`. Don't
-  re-read a file you just edited.
+- Write all prose in ASD-STE100 Simplified Technical English (STE): docs,
+  comments, commit messages, PR bodies, findings, and reports. Read `ste.md`
+  before the first sentence.
+- Read a web page as text first. Take a screenshot only for a visual check, at
+  scale 0.5 or less.
+- Convert a PDF to text with `pdftotext`.
+- Use Read to view source and Grep to search it. Do not use `cat` or `sed`
+  for this.
+- Do not read a file again just after you edit it.
 
 ## Learning
 
-When the user corrects your work, record it from inside the repo before you
-reply:
+If the user corrects your work, record the correction before you reply. Run
+this command from inside the repo:
 `python3 <shepherd>/hooks/capture.py signal --kind <kind> --rule "<shepherd rule>" --evidence "<file:line> <one-line paraphrase>"`
 
-- `reject`: they reject or edit a finding before it is posted, or say a
-  check, abstraction, or file should have been kept or cut.
-- `revert`: they undo a cut.
-- `restore`: a removed check had to come back because a test failed.
-- `accept`: they approve posting a review; the evidence names the findings
-  that went out and the ones dropped.
+- `reject`: the user rejects or edits a finding before you post it. Or the
+  user says that you kept or cut a check, abstraction, or file by mistake.
+- `revert`: the user reverts a cut.
+- `restore`: you put back a removed check because a test failed.
+- `accept`: the user tells you to post a review. The evidence names the
+  findings that you posted and the findings that you dropped.
 
-Evidence never holds secrets or code. For a clear, repo-specific reject,
-revert, or restore, add `--lesson "<what to do in this repo, and why>"`; to
-count an existing lesson again, pass its exact text. If the lesson would
-weaken the never-cut list, add `--flag never-cut` instead and tell the user it
-was not applied. Relay what the script prints, including a full lessons file.
+Do not put secrets or code in the evidence. If a reject, revert, or restore is
+clear and specific to the repo, add `--lesson "<what to do in this repo, and why>"`.
+To count a lesson again, pass its exact text. If the lesson makes the
+never-cut list weaker, add `--flag never-cut` instead. Then tell the user that
+the lesson does not apply.
+
+Show the user all of the script output. If the output has a full lessons
+file, show that file too.
 
 ## Packs (experimental)
 
-Only from a full clone (`<shepherd>/../../catalog/catalog.json` exists): when
-the task fits a pack below that `catalog.py list` shows as not installed,
-offer it once per session: "The <pack> pack (<skills>) would help here.
-Install it?" Install only on a yes, following `skills.md`.
+Do this only in a full clone (`<shepherd>/../../catalog/catalog.json` exists).
+If the task fits a pack below and `catalog.py list` shows it as not
+installed, offer it once in each session. Say: "The <pack> pack (<skills>) can
+help here. Install it?" Install the pack only if the user says yes. Follow
+`skills.md` to install it.
 
 | Pack | Cues | Skills |
 |---|---|---|
@@ -112,59 +124,65 @@ Install it?" Install only on a yes, following `skills.md`.
 
 ## The ladder
 
-Take the first rung that holds, and name it in one line:
+Use the first rung that holds. Name that rung in one line:
 
 1. Not needed: say so and stop.
-2. Already in the repo: reuse it the way neighbouring code does. Extend the
-   existing service or module rather than adding a parallel one.
+2. Already in the repo: reuse it in the same way as the code around it.
+   Extend the service or module that is there. Do not add a parallel one.
 3. The standard library or platform.
-4. A dependency the repo already has.
+4. A dependency that the repo already has.
 5. Minimal new code.
 
 ## Shared cut list
 
-Code that has not earned its place, when writing and when reviewing:
+This code does not earn its place. Look for it when you write and when you
+review:
 
-- An interface or abstract type with one implementation. Exception: the repo's
-  convention requires it (a `createX` factory returning interface `X`,
-  producer-side service interfaces) or a test fake or stub implements it. Grep
-  for implementations before flagging.
-- A factory with one product; a unit-of-work, manager, registry, or options
+- An interface or abstract type with one implementation. Exception: the
+  repo's convention requires it (a `createX` factory that returns interface
+  `X`, service interfaces on the producer side). Exception: a test fake or
+  stub implements it. Grep for implementations before you flag it.
+- A factory with one product. A unit-of-work, manager, registry, or options
   layer with one consumer.
 - A function that only forwards its arguments to one call.
 - A one-expression helper with one or two callers that names no domain concept.
-- Error factories, throw-only and catch-only helpers.
+- Error factories, and helpers that only throw or only catch.
 - A parameter, option, or flag that every caller leaves at its default.
-- A generic type parameter used with one type.
-- A new file or layer when an existing one already owns the job.
-- Near-duplicates merged behind boolean flags (keep the copies); a function
+- A generic type parameter that only one type fills.
+- A new file or layer when a current file or layer already owns the job.
+- Near-duplicates merged behind boolean flags. Keep the copies. A function
   split only to make it shorter.
 - An alias that only renames: a re-export under a new name, a type alias or
   token that maps one name to another.
 - A stub or placeholder: an option or branch that only logs "would do X", a
   hardcoded fake value. Leave it out until X exists.
-- A comment the code could carry instead, through a better name, a named
+- A comment that the code can carry instead, with a better name, a named
   constant, or a type. A comment earns its place only for a non-obvious why,
-  an outside constraint (a library bug, a spec, an audit item), a deliberate
-  deviation, a TODO with an owner, or a known shortcut written as
-  `shortcut: <the limit>, <when to upgrade>`, in at most 2 lines. Commented-out code
-  is deleted; git remembers it.
+  an outside constraint, or a deliberate deviation. An outside constraint is a
+  library bug, a spec, or an audit item. A TODO with an owner and a known
+  shortcut also earn a place. Write a shortcut as
+  `shortcut: <the limit>, <when to upgrade>`. Keep a comment to 2 lines or
+  fewer. Delete commented-out code. Git keeps it.
 - Logging on the happy path.
-- Edits to code the task didn't ask about: refactors, renames, reformatting,
-  behavior changes to existing paths, and bulk-stripping old comments or lint
-  backlog in files you only touch.
+- Edits to code that the task did not ask about: refactors, renames, new
+  formatting, and behavior changes to current paths. Also bulk removal of old
+  comments or lint backlog in files that the change only touches.
 
 ## Proving code is unused
 
-Grep misses some references. Before calling code unused, also check
-side-effect imports (`import "./x"`), string-keyed registration (routes, DI
-names, event names), config globs and paths (Tailwind `@source`, build
-includes), reflection, and tests. If removing it would break something
-silently, it stays.
+Grep does not find every reference. Before you call code unused, also check:
+
+- side-effect imports (`import "./x"`)
+- string-keyed registration (routes, DI names, event names)
+- config globs and paths (Tailwind `@source`, build includes)
+- reflection
+- tests
+
+If a removal can break something with no error, keep the code.
 
 ## Lint first
 
-Whatever the repo's linter enforces, run the linter instead of restating its
-rules. Judgment covers what lint can't see: callers, invariants, reachability,
-scope, and documented conventions that no linter enforces. In review, a broken
-documented convention is a finding; quote the doc.
+Run the repo's linter. Do not restate the rules that it enforces. Use judgment
+for what lint cannot see: callers, invariants, reachability, scope, and
+documented conventions that no linter enforces. In a review, a broken
+documented convention is a finding. Quote the doc.

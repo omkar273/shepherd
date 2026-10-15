@@ -1,15 +1,21 @@
 # skills repo
 
-- Setup, update, add and status go through `skills/shepherd/skills.md`.
-- Every skill is one folder under `skills/`. Vendored skills carry an
-  `.origin.yaml`; never edit them by hand, re-sync them with
+- Use `skills/shepherd/skills.md` for setup, update, add, and status.
+- Each skill is one folder under `skills/`. A vendored skill has an
+  `.origin.yaml`. Do not edit a vendored skill by hand. Sync it again with
   `skills/shepherd/scripts/sync_skill.py`.
-- `skills/shepherd` is authored here (`origin: mine`). When a change to it
-  ships, raise `version` in `skills/shepherd/.claude-plugin/plugin.json`;
-  plugin users don't get the change until it changes.
-- After adding or removing a skill, regenerate the README catalog with
-  `skills/shepherd/scripts/gen_catalog.py`.
-- Tests:
-  `python3 -m unittest discover -s skills/shepherd/scripts/tests`
-- Commits and PR bodies never name a model and never carry a
+- This repo is the source of `skills/shepherd` (`origin: mine`). When you ship
+  a change to it, raise `version` in
+  `skills/shepherd/.claude-plugin/plugin.json`. Plugin users get the change
+  only after the version changes.
+- Write the prose of an authored skill, this file, and `setup/claude-md.md` in
+  ASD-STE100 Simplified Technical English. `skills/shepherd/ste.md` has the
+  rules. `skills/shepherd/scripts/ste_lint.py` checks them, and the tests run
+  it.
+- After you add or remove a skill, or change a skill's description,
+  regenerate the README catalog with `skills/shepherd/scripts/gen_catalog.py`.
+- Run the checks with:
+  `python3 -m unittest discover -s skills/shepherd/scripts/tests` and
+  `ruff check .`. CI runs them on each pull request.
+- Do not name a model in a commit or a PR body. Do not add a
   `Co-Authored-By:` or "Generated with" trailer.

@@ -1,0 +1,21 @@
+name: check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Lint code
+        run: pipx run ruff==0.6.9 check .
+      - name: Lint prose (ASD-STE100)
+        run: python3 skills/shepherd/scripts/ste_lint.py
+      - name: Test
+        run: python3 -m unittest discover -s skills/shepherd/scripts/tests
