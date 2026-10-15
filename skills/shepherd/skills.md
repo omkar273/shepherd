@@ -37,12 +37,14 @@ shepherd on its own (with `npx skills` or as a plugin). In that case:
    - Run `settings.py add-hook --event SessionStart --command 'python3 "$HOME/.claude/skills/shepherd/scripts/nudge.py"'`.
      Show the diff that it prints.
    - If the user says yes, run it again with `--write`.
-7. Context hooks (`context.md` says what each hook does). For each row, run
-   `settings.py add-hook` with the arguments in the row, and show the diff. If
-   the user says yes, run it again with `--write`:
+7. Context and write hooks (`context.md` says what each hook does). For each
+   row, run `settings.py add-hook` with the arguments in the row, and show the
+   diff. If the user says yes, run it again with `--write`:
    - `--event UserPromptSubmit --command 'python3 "$HOME/.claude/skills/shepherd/scripts/context_hooks.py" warn'`
    - `--event PostToolUse --matcher Bash --command 'python3 "$HOME/.claude/skills/shepherd/scripts/context_hooks.py" trim'`
    - `--event PreToolUse --matcher Bash --command 'python3 "$HOME/.claude/skills/shepherd/scripts/context_hooks.py" guard'`
+   - `--event PostToolUse --matcher 'Edit|Write|MultiEdit' --command 'python3 "$HOME/.claude/skills/shepherd/scripts/write_hooks.py" lint'`
+   - `--event Stop --command 'python3 "$HOME/.claude/skills/shepherd/scripts/write_hooks.py" stop'`
 8. Auto-compact: run `settings.py merge --json '{"env": {"CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "70"}}'`.
    Show the diff. If the user says yes, run it again with `--write`. If
    `~/.claude/settings.json` still has `autoCompactWindow: 300000` from an
@@ -122,6 +124,7 @@ Nothing can start a skill that is off.
    - It sets `"name-only"` in `skillOverrides` for each other user, project,
      and builtin skill.
    - It removes the `"name-only"` override of each kept skill.
+   - It removes each `"name-only"` override of a name that no skill has.
    - It sets `false` in `enabledPlugins` for each unused plugin that has a
      `key`. A plugin with a kept skill stays on.
    The patch does not change an `"off"` override. `skillOverrides` does not
@@ -129,8 +132,10 @@ Nothing can start a skill that is off.
 5. If the user says yes, run the command again with `--write`. Do not write
    anything without that yes.
 6. An agent cannot select a name-only skill from its description. A
-   SessionStart hook gives the agent keywords for each name-only skill. Run
-   `settings.py add-hook --file <the repo>/.claude/settings.local.json --event SessionStart --command 'python3 "$HOME/.claude/skills/shepherd/scripts/status.py" --index --repo "$CLAUDE_PROJECT_DIR"'`.
+   SessionStart hook gives the agent a short description of each name-only
+   skill. After `/clear` or a compaction, the agent does not have this text,
+   so the hook runs again at these events. Run
+   `settings.py add-hook --file <the repo>/.claude/settings.local.json --event SessionStart --matcher 'startup|clear|compact' --command 'python3 "$HOME/.claude/skills/shepherd/scripts/status.py" --index --repo "$CLAUDE_PROJECT_DIR"'`.
    Show the diff. If the user says yes, run it again with `--write`.
 7. Tell the user that the changes apply to new sessions.
 

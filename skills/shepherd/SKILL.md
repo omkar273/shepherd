@@ -58,7 +58,7 @@ python3 "${CLAUDE_SKILL_DIR}/hooks/capture.py" step0 || true
 | Planning a multi-file or unclear change | the superpowers `brainstorming` skill, then `writing-plans`. If the repo uses Matt's issue flow, suggest `/to-spec` to the user. Only the user can start it. |
 | A bug or a failing test | the superpowers `systematic-debugging` skill |
 | About to say a change is done | the superpowers `verification-before-completion` skill |
-| No skill in the listing fits the task | the keywords of the name-only skills from the SessionStart hook. If one fits, call it by name. Read only that skill. |
+| No skill in the listing fits the task | the descriptions of the name-only skills from the SessionStart hook. If one fits, call it by name. Read only that skill. |
 | "Set up", "update", "add" or "status" for skills | `skills.md` |
 | Installing or removing a pack, or a task that fits a pack: planning, productivity, design, reverse engineering, video, writing, SEO, simulation | `skills.md`, Packs |
 | Adding or removing a catalog skill | `curate.md` |
