@@ -31,8 +31,10 @@ update commands, see [the full setup](#the-full-setup).
 ## Use it
 
 There is no command to remember. Ask for a feature, a fix, or a review as
-usual; `shepherd` loads itself, and every change ends with a short report. For
-example:
+usual. With [the full setup](#the-full-setup), a short rule card in
+`~/.claude/CLAUDE.md` covers ordinary changes and reviews, so no skill has to
+load. With the plugin or `npx skills`, `shepherd` loads itself. Either way,
+every change ends with a short report. For example:
 
 ```text
 Rung: already in the repo - reused scopeToTenant from store/query.go
@@ -64,7 +66,25 @@ Coding agents are capable and eager, and the eagerness costs you:
 - Sessions that grow until the model gets worse at the task.
 
 `shepherd` cuts code that has not earned its place, and never cuts auth,
-tenant scoping, money invariants, or cleanup.
+tenant scoping, money invariants, or cleanup. In its evals, the same prompts
+go to fresh agents, scored against an answer key the agents never see. Measured
+on 2026-10-16 with Sonnet, 3 to 6 runs in each column:
+
+| | No skill | Skill only (1.9) | Full setup (1.10) |
+|---|---|---|---|
+| PR review: a never-cut check flagged for removal | 5 of 6 runs | 1 of 12 | 0 of 9 |
+| PR review: planted problems caught, Go (12) / TS (15) | 11.3 / 14.0 | 12.0 / 15.0 | 11.8 / 15.0 |
+| PR review: mean cost, median time, Go | $0.14, 30 s | $0.22, 50 s | $0.17, 43 s |
+| PR review: mean cost, median time, TS | $0.12, 24 s | $0.25, 53 s | $0.21, 53 s |
+| New feature: credit moved atomically | 0 of 3 | 0 of 6 | 3 of 3 |
+| New feature: mean cost, median time, lines added | $0.20, 48 s, 81 | $0.23, 54 s, 80 | $0.32, 84 s, 97 |
+
+Without a skill, the Go review asked the author to delete a tenant check in 3
+of 3 runs, because another layer already ran it. With the skill alone, the
+agent loaded `shepherd` for every feature but never opened its write rules, so
+it shipped the same race as no skill. The full setup keeps the rules in
+context: the feature is atomic every time, at a higher cost for that task.
+Rerun the evals yourself with [`evals/README.md`](evals/README.md).
 
 ### Head to head
 
@@ -116,7 +136,8 @@ with `/simplify`, and the `code-review` skill of
 
 <!-- bench:end -->
 
-The first run is one trial for each arm on Sonnet (108 runs):
+The first run is one trial for each arm on Sonnet (108 runs). Its `shepherd`
+arm is the 1.9 plugin: the skill only, with no `CLAUDE.md` card.
 
 - Every arm without shepherd asked the author of the Go PR to delete the
   tenant check, because the repository also scopes by tenant. Shepherd kept
@@ -151,8 +172,14 @@ The rules, briefly:
   wiring; tests the repo requires; adjacent bug fixes, each named. Nothing
   else.
 
-`shepherd` is a router: one short file that hands each task to the section
-that owns it.
+The full setup puts these rules in a card of about 1,300 tokens in
+`~/.claude/CLAUDE.md`. Claude Code loads the card at session start and keeps it
+in the prompt cache, so an ordinary change or review costs no extra tool call.
+The skill is the deep reference for audits, plans, skills work, SEO, and long
+sessions, and for installs that have no card.
+
+The skill is a router: one short file that hands each task to the section that
+owns it.
 
 ```mermaid
 flowchart LR
@@ -167,8 +194,15 @@ flowchart LR
 ```
 
 The router stays under 5,000 tokens, which is what Claude Code keeps after it
-compacts a session. Everything else loads only when the task needs it, and a
-Go change never loads the TypeScript rules.
+compacts a session. When it loads, one script prints a repo card (check
+commands, lint config, nested `AGENTS.md` files) and the repo's lessons before
+the agent sees the skill, so Step 0 needs no extra tool call. The script runs
+from the skill's `allowed-tools`, so Claude Code may ask once before it runs
+the skill.
+
+The full setup also links the `lang/` files into `~/.claude/rules/shepherd` as
+path rules. Claude Code loads the Go rules only when the agent opens a `.go`
+file, so a Go change never loads the TypeScript rules.
 
 ## The full setup
 
@@ -190,7 +224,9 @@ Open Claude Code in that folder and say **"set up my skills"**. Setup:
 - links each skill into `~/.claude/skills` and `~/.agents/skills`
 - moves anything it would replace to `~/.skills-backup/<date>/`, and never
   deletes your files
-- writes one marked block into `~/.claude/CLAUDE.md`
+- writes the shepherd rule card into `~/.claude/CLAUDE.md`, in one marked
+  block
+- links the language rules into `~/.claude/rules/shepherd`
 - offers to install the [superpowers](https://github.com/obra/superpowers)
   plugin if it is missing
 - offers the 7-day update reminder and the [context hooks](#context-hygiene),
@@ -216,7 +252,7 @@ Skills marked `mine` are authored here. Vendored skills record their source in
 
 | Skill | Description | Source |
 | --- | --- | --- |
-| `shepherd` | Use when you write, change, or review code or docs in a repo. That includes a feature, a fix, a refactor, a debug session, and a plan for a multi-file change. Use it to review a teammate's pull request, branch, or diff (before or with code-review), and before you say a change is done. Use it before you add a helper, wrapper, interface, layer, option, defensive check, or test that the task did not ask for. Use it to set up, update, add, or check skills. | local |
+| `shepherd` | Use when you write, change, or review code or docs in a repo, and your CLAUDE.md has no shepherd card. That includes a feature, a fix, a refactor, a review of a pull request, branch, or diff, and a plan for a multi-file change. Use it before you add a helper, wrapper, interface, layer, option, defensive check, or test that the task did not ask for. With the card, use it only for an audit, a multi-file plan, a correction from the user, SEO work, or a long session. Always use it to set up, update, add, prune, or check skills. | local |
 
 ### Vendored
 
@@ -302,9 +338,9 @@ tells the warning the window size (it assumes 200k without one).
 Say **"prune skills for this repo"** to show only the names of the skills a
 repo does not need, in its `.claude/settings.local.json`. Skills keep their
 descriptions when shepherd routes work to them, when the repo used them in the
-last 30 days, or when you name them. A SessionStart hook lists keywords for
-the other skills, so the agent can still find them. Say **"unhide X"** to bring
-a description back.
+last 30 days, or when you name them. A SessionStart hook gives a short
+description of the other skills, so the agent can still find them. Say
+**"unhide X"** to bring a description back.
 
 ### Learning from corrections
 
@@ -347,11 +383,12 @@ full setup; the plugin and `npx skills` installs record nothing.
 Just shepherd: `claude plugin uninstall shepherd@shepherd`, or
 `npx skills remove shepherd -g`.
 
-The full setup: remove the links into this clone and into the pack cache, then
-the session-start reminder, if you turned it on.
+The full setup: remove the links into this clone and into the pack cache, the
+language rules link, then the session-start reminder, if you turned it on.
 
 ```bash
 find ~/.claude/skills ~/.agents/skills -maxdepth 1 \( -lname "$HOME/src-code/shepherd/*" -o -lname "$HOME/.shepherd/catalog/*" \) -delete
+rm -f ~/.claude/rules/shepherd
 python3 ~/src-code/shepherd/skills/shepherd/scripts/settings.py remove-hook --event SessionStart --command 'python3 "$HOME/.claude/skills/shepherd/scripts/nudge.py"' --write
 ```
 

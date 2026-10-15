@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """Link every skill in this repo into ~/.claude/skills and ~/.agents/skills.
+Link shepherd's lang/ folder to ~/.claude/rules/shepherd, so Claude Code loads
+each language file as a path rule when the agent opens a matching file.
 
 A real folder or a foreign link in the way is moved to
 ~/.skills-backup/<date>/<runtime>/<name>, never deleted. Links into this repo
@@ -14,6 +16,8 @@ from pathlib import Path
 SKILLS_DIR = Path(__file__).resolve().parents[2]
 RETIRED_FILE = SKILLS_DIR.parent / "setup" / "retired.txt"
 RUNTIMES = {"claude": Path(".claude/skills"), "agents": Path(".agents/skills")}
+RULES_LINK = Path(".claude/rules/shepherd")
+RULES_SOURCE = SKILLS_DIR / "shepherd" / "lang"
 
 
 def points_into_repo(path):
@@ -65,6 +69,16 @@ def plan(home, retire):
                 actions.append(("move", entry, backup_path(home, runtime, entry.name)))
             else:
                 report["untouched"].append(key)
+    rules = home / RULES_LINK
+    if rules.is_symlink() and Path(os.path.realpath(rules)) == RULES_SOURCE.resolve():
+        report["unchanged"].append("rules/shepherd")
+    else:
+        if os.path.lexists(rules):
+            report["backed_up"].append("rules/shepherd")
+            actions.append(("move", rules, backup_path(home, "rules", "shepherd")))
+        else:
+            report["linked"].append("rules/shepherd")
+        actions.append(("link", rules, RULES_SOURCE))
     return report, actions
 
 
