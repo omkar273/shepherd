@@ -10,6 +10,7 @@ CASES = {
     "go-billing": ("feat/void-invoices", "internal/service/void.go"),
     "ts-app": ("feat/apply-credit", "src/billing/credit.ts"),
     "ts-app-v2": (None, "src/billing/AGENTS.md"),
+    "py-billing": ("feat/refunds", "billing/refund_policy.py"),
 }
 
 

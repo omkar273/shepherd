@@ -64,20 +64,77 @@ Coding agents are capable and eager, and the eagerness costs you:
 - Sessions that grow until the model gets worse at the task.
 
 `shepherd` cuts code that has not earned its place, and never cuts auth,
-tenant scoping, money invariants, or cleanup. In its evals, the same prompts
-go to fresh agents, scored against an answer key the agents never see:
+tenant scoping, money invariants, or cleanup.
 
-| | Without shepherd | With shepherd |
-|---|---|---|
-| Same feature, lines added (Go / TypeScript)\* | 310 / 132 | 125 / 59 |
-| PR review: planted problems caught | 25 of 27 | 27 of 27 |
-| PR review: tenant-scoping check flagged for removal | yes | no |
+### Head to head
 
-Without the skill, the agent's review asked the author to delete a tenant check
-because another layer already ran it. Rerun the evals yourself with
-[`evals/README.md`](evals/README.md).
+A bench gives the same tasks to new agent sessions, one arm for each skill
+pack. It scores the results against an answer key that the agents never see.
+The arms are no pack, `shepherd`,
+[andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills),
+[superpowers](https://github.com/obra/superpowers), the Anthropic
+[code-review plugin](https://github.com/anthropics/claude-code/tree/main/plugins/code-review)
+with `/simplify`, and the `code-review` skill of
+[mattpocock/skills](https://github.com/mattpocock/skills).
 
-\* Measured on 2026-10-11 with the same rules under their earlier name, `lean`.
+<!-- bench:start -->
+
+108 runs, up to 1 trials for each arm, task and model. Claude Code 2.1.287. Cost is the CLI's `total_cost_usd`.
+
+**Quality**
+
+| Model | Arm | Planted caught | False positives per review | Traps cut | Trap tasks kept (pass^1) | Write checks passed | Pressure: check kept (Py / Go) | Trigger recall | Near-miss triggers |
+|---|---|---|---|---|---|---|---|---|---|
+| sonnet | baseline | 95% | 0.3 | 2 | 5/7 | 94% | 1/1 / 0/1 | n/a | n/a |
+| sonnet | shepherd | 100% | 0.0 | 1 | 6/7 | 94% | 1/1 / 0/1 | 8/10 | 0/5 |
+| sonnet | karpathy | 95% | 0.3 | 2 | 5/7 | 94% | 1/1 / 0/1 | 1/7 | 0/5 |
+| sonnet | superpowers | 86% | 0.3 | 2 | 5/7 | 94% | 1/1 / 0/1 | 6/10 | 1/5 |
+| sonnet | anthropic | 86% | 0.3 | 2 | 5/7 | 88% | 1/1 / 0/1 | n/a | n/a |
+| sonnet | pocock | 100% | 0.3 | 2 | 5/7 | 94% | 1/1 / 0/1 | 1/3 | 0/5 |
+
+**Cost** (a mean for each run of the main tasks. Total $ includes the trigger prompts.)
+
+| Model | Arm | $ per run | Cache-write tokens | Wall time | Tool calls | Rename ($, time) | Total $ |
+|---|---|---|---|---|---|---|---|
+| sonnet | baseline | 0.09 | 12,495 | 26s | 4 | $0.10, 23s | 0.73 |
+| sonnet | shepherd | 0.15 | 20,073 | 44s | 13 | $0.11, 27s | 1.93 |
+| sonnet | karpathy | 0.09 | 12,681 | 29s | 5 | $0.09, 24s | 1.32 |
+| sonnet | superpowers | 0.15 | 19,430 | 50s | 10 | $0.11, 38s | 2.02 |
+| sonnet | anthropic | 0.23 | 31,356 | 48s | 10 | $0.21, 86s | 1.83 |
+| sonnet | pocock | 0.10 | 13,882 | 33s | 7 | $0.09, 63s | 1.42 |
+
+**By task** (mean for each run)
+
+| Model | Arm | Go review caught | TS review caught | Python review caught | Lines added (TS / Go write) |
+|---|---|---|---|---|---|
+| sonnet | baseline | 11.0/12 | 14.0/15 | 10.0/10 | 74 / 91 |
+| sonnet | shepherd | 12.0/12 | 15.0/15 | 10.0/10 | 78 / 77 |
+| sonnet | karpathy | 11.0/12 | 14.0/15 | 10.0/10 | 82 / 101 |
+| sonnet | superpowers | 11.0/12 | 12.0/15 | 9.0/10 | 81 / 154 |
+| sonnet | anthropic | 11.0/12 | 11.0/15 | 10.0/10 | 98 / 80 |
+| sonnet | pocock | 12.0/12 | 15.0/15 | 10.0/10 | 76 / 76 |
+
+<!-- bench:end -->
+
+The first run is one trial for each arm on Sonnet (108 runs):
+
+- Every arm without shepherd asked the author of the Go PR to delete the
+  tenant check, because the repository also scopes by tenant. Shepherd kept
+  the check.
+- Shepherd and the `pocock` skill caught all planted problems. Shepherd had no
+  false positives.
+- When the prompt told the agent to delete the same Go tenant check, every arm
+  deleted it. Shepherd did not load for that prompt. It also did not load for
+  2 of the 10 trigger prompts.
+- No arm made the credit update in `ts-write` atomic.
+- Shepherd costs 1.7 times the baseline for each run, and it takes 1.7 times
+  the wall time.
+
+One trial shows no variance. Run 3 trials before you trust a difference of one
+or two runs.
+
+[`evals/README.md`](evals/README.md#head-to-head-bench) tells you how each arm
+loads, what each task and column measures, and how to run the bench yourself.
 
 ## How it works
 
