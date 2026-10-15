@@ -24,7 +24,7 @@ is code that adds nothing. Fix or flag the CRITICAL items first.
 ## Keep
 
 - **CRITICAL.** Tenant, owner, and state checks in a service, also when the
-  repo or the handler checks too. Workers and other services call the
+  repo or the handler checks too. Workers and other services can call the
   service directly.
   ```go
   // bad: "store.Get already scopes by org", so the re-check goes
@@ -61,6 +61,10 @@ is code that adds nothing. Fix or flag the CRITICAL items first.
   ```
 - **HIGH.** nil checks on pointers from nullable columns, optional JSON
   fields, and map lookups. A nil pointer there panics.
+  ```go
+  log.Print(*o.ShippedAt)                           // bad: NULL column panics
+  if o.ShippedAt != nil { log.Print(*o.ShippedAt) } // good
+  ```
 - **MEDIUM.** A bare `if err != nil { return nil, err }` in intermediate
   layers. Add context once, where the error occurs, with the repo's error
   package or `fmt.Errorf("...: %w", err)`.
@@ -116,6 +120,10 @@ not check it again.
   DI container (fx, wire, or a hand-written `main.go`), and each worker, job,
   or workflow registration that builds its own instances. A service that only
   `main.go` builds does not run in the worker.
+  ```go
+  // cmd/server/main.go: ships := service.NewShipService(store)
+  // internal/worker/register.go: bad, no NewShipService, so ship jobs fail
+  ```
 - **CRITICAL.** Routes, and the error-to-HTTP-status mapping for each new
   error value. An unmapped error becomes a 500.
   ```go
@@ -126,4 +134,8 @@ not check it again.
   ```
 - **HIGH.** Generated code (ent, sqlc, mocks, swagger, SDKs): run the repo's
   generate target. Never edit the output by hand.
+  ```sh
+  $EDITOR internal/ent/order.go  # bad: the next generate drops the edit
+  go generate ./...              # good: change the schema, then generate
+  ```
 - **MEDIUM.** `//go:build` tags on new files that need them.

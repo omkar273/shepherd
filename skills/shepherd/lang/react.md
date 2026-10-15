@@ -29,6 +29,10 @@ MEDIUM is code that adds nothing.
   ```
 - **HIGH.** Loading, error, and empty states for async data that the user
   sees.
+  ```tsx
+  const { data } = useQuery(q); return <List items={data!} />          // bad
+  if (isPending) return <Spinner />; if (error) return <Failed e={error} /> // good
+  ```
 - **HIGH.** A stable `key` from the data on a list that can change order.
   ```tsx
   items.map((it, i) => <Row key={i} item={it} />)     // bad: state moves to the wrong row
@@ -75,12 +79,21 @@ not in every component.
 
 - **CRITICAL.** Route registration. A page that no route lists is
   unreachable.
+  ```tsx
+  routes = [{ path: "/orders", element: <Orders /> }]  // bad: no OrderDetail route
+  routes.push({ path: "/orders/:id", element: <OrderDetail /> }) // good
+  ```
 - **HIGH.** Providers that you mount above every consumer. A missing provider
   throws at runtime or gives the default value.
+  ```tsx
+  root.render(<App />)                             // bad: useCart() has no provider
+  root.render(<CartProvider><App /></CartProvider>) // good
+  ```
 - **HIGH.** Query keys that match their invalidations. A key that does not
   match leaves stale data on the screen.
   ```tsx
   useQuery({ queryKey: ["order", id] }); invalidateQueries({ queryKey: ["orders", id] }) // bad
+  useQuery({ queryKey: ["order", id] }); invalidateQueries({ queryKey: ["order", id] })  // good
   ```
 - **MEDIUM.** Exports through the repo's index or barrel file. A new component
   that nothing imports is dead code.

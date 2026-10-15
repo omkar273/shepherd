@@ -38,6 +38,10 @@ MEDIUM is code that adds nothing.
   ```
 - **HIGH.** Loading, error, and empty states for async data that the user
   sees (`{#await}`, `{:catch}`, `{:else}`).
+  ```svelte
+  {#await orders then list}<List {list} />{/await}  <!-- bad: no pending or error state -->
+  {#await orders}<Spinner />{:then list}<List {list} />{:catch e}<Failed {e} />{/await}
+  ```
 - **HIGH.** A key on an `{#each}` list that can change order.
   ```svelte
   {#each items as item}           <!-- bad: state moves to the wrong row -->
@@ -62,6 +66,10 @@ MEDIUM is code that adds nothing.
   `on:click`, `createEventDispatcher`. Runes mode rejects `export let` and
   `$:`, and marks the others as deprecated. Use `$props()`, `$derived`,
   `onclick`, and callback props.
+  ```svelte
+  export let order; $: total = order.qty * order.price                  // bad
+  let { order } = $props(); let total = $derived(order.qty * order.price) // good
+  ```
 - **MEDIUM.** `{#if x}` or `?.` guards on a prop whose type is required.
   ```svelte
   {#if order}<p>{order.qty}</p>{/if} <!-- bad: order is required -->
@@ -85,7 +93,15 @@ the server side, not in every component.
 
 - **CRITICAL.** Route files (`+page`, `+layout`, `+server`, `+page.server`).
   A route needs the file name that SvelteKit expects.
+  ```sh
+  src/routes/orders/page.svelte   # bad: SvelteKit ignores it
+  src/routes/orders/+page.svelte  # good
+  ```
 - **HIGH.** The `load` return type that the page consumes. Use the generated
   `PageData` and `PageProps` types.
+  ```svelte
+  let { data } = $props()            // bad: data has no type
+  let { data }: PageProps = $props() // good
+  ```
 - **MEDIUM.** Component library exports.
 - **MEDIUM.** The repo's design-system component instead of a new one.

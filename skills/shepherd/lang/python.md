@@ -27,7 +27,7 @@ is code that adds nothing. Fix or flag the CRITICAL items first.
 ## Keep
 
 - **CRITICAL.** Tenant, owner, state, and idempotency checks in a service,
-  also when the handler checks too. Workers and scripts call the service
+  also when the handler checks too. Workers and scripts can call the service
   directly.
   ```python
   if order.org_id != ctx.org_id:          # keep
@@ -54,7 +54,8 @@ is code that adds nothing. Fix or flag the CRITICAL items first.
   except KeyError as err: raise NotFound(key) from err   # good
   ```
 - **HIGH.** Time zones on datetimes. `datetime.utcnow()` returns a naive
-  value that compares wrong with an aware one.
+  value. `.timestamp()` reads it as local time, and a compare with an aware
+  value raises `TypeError`.
   ```python
   now = datetime.utcnow()              # bad
   now = datetime.now(timezone.utc)     # good
@@ -72,6 +73,10 @@ is code that adds nothing. Fix or flag the CRITICAL items first.
 - **HIGH.** A broad `except` that swallows the error (`except Exception: pass`,
   a `return None` in the handler). The failure disappears. Catch the
   specific error, or let it go up.
+  ```python
+  except Exception: return None          # bad: nobody sees the failure
+  except TimeoutError: retry_later(job)  # good: catch what you can handle
+  ```
 - **MEDIUM.** A `try` that only raises again.
   ```python
   try: self.store.save(order)
@@ -111,6 +116,10 @@ again with `isinstance` or a range test.
 - **CRITICAL.** Route registration: the route table, `urls.py`,
   `include_router`, or a blueprint. A handler that no route lists is
   unreachable.
+  ```python
+  router = APIRouter(prefix="/orders")  # bad: no include_router, so no route
+  app.include_router(orders.router)    # good
+  ```
 - **CRITICAL.** The error-to-status mapping for each new exception. An
   unmapped exception becomes a 500.
   ```python
@@ -119,5 +128,10 @@ again with `isinstance` or a range test.
   ```
 - **HIGH.** Task and job registration (Celery, RQ, the repo's worker table),
   Django `INSTALLED_APPS`, and migrations for each model change.
+  ```python
+  def ship_order(order_id): ...                  # bad: the worker cannot find it
+  @app.task
+  def ship_order(order_id): ...                  # good
+  ```
 - **MEDIUM.** `__init__.py` exports and `__all__` if the repo routes imports
   through them, and `[project.scripts]` entry points.

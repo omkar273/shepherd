@@ -71,6 +71,18 @@ class ShepherdTests(unittest.TestCase):
         missing = [p for p in sorted(paths) if not (SHEPHERD / p).exists()]
         self.assertEqual(missing, [])
 
+    def test_lang_files_keep_their_shape(self):
+        # learn.md caps each lang file at 150 lines. Without `paths:`, a rule loads in every session.
+        for path in sorted((SHEPHERD / "lang").glob("*.md")):
+            text = path.read_text()
+            self.assertLessEqual(len(text.splitlines()), 150, path.name)
+            self.assertRegex(text, r'^---\npaths:\n(  - "[^"]+"\n)+---\n', path.name)
+            headings = re.findall(r"^## (.+)$", text, re.M)
+            self.assertEqual(headings, ["Keep", "Cut", "Boundaries", "Wiring"], path.name)
+            for item in re.split(r"\n(?=- )", text):
+                if item.startswith(("- **CRITICAL.**", "- **HIGH.**")):
+                    self.assertIn("```", item, f"{path.name}: {item.splitlines()[0]}")
+
 
 class CatalogRepoTests(unittest.TestCase):
     def router_pack_rows(self):

@@ -56,6 +56,10 @@ path. MEDIUM is code that adds nothing. Fix or flag the CRITICAL items first.
   ```
 - **HIGH.** `?.` and `??` on a value whose type is really optional. If a
   default hides missing money or quantity data, ask about it. Do not cut it.
+  ```ts
+  const city = user!.address.city           // bad: address is optional
+  const city = user.address?.city ?? "-"     // good
+  ```
 - **MEDIUM.** `satisfies`, `AbortSignal.timeout`, `AbortSignal.any`, and
   `try`/`finally` cleanup.
 
@@ -80,6 +84,10 @@ path. MEDIUM is code that adds nothing. Fix or flag the CRITICAL items first.
   try { await save(o) } catch (e) { throw e } // bad
   await save(o)                               // good
   ```
+- **MEDIUM.** A new interface with one implementation and no fake, outside
+  the repo's convention. If the repo's services use a `createX` factory that
+  returns interface `X`, the interface is the convention. Keep it. Grep the
+  other services and the tests before you flag one.
 - **MEDIUM.** A type alias or function that only renames a library's type,
   and a hand-written type that you can derive (`z.infer`, `Pick`,
   `ReturnType`).
@@ -109,6 +117,10 @@ Parse once at the boundary. After that, trust the parsed type.
 
 - **CRITICAL.** Register each new procedure or route in the router. A
   procedure that no router lists is unreachable.
+  ```ts
+  export const router = { getOrder }            // bad: shipOrder is missing
+  export const router = { getOrder, shipOrder } // good
+  ```
 - **CRITICAL.** Add each new error code to the error-to-status mapping.
   ```ts
   // bad: "OUT_OF_STOCK" has no case, so the client gets a 500
@@ -116,6 +128,10 @@ Parse once at the boundary. After that, trust the parsed type.
   ```
 - **HIGH.** Generated files (route trees, API clients): regenerate them.
   Never edit them by hand.
+  ```sh
+  $EDITOR src/routeTree.gen.ts  # bad: the next build drops the edit
+  npm run generate              # good: use the repo's script
+  ```
 - **MEDIUM.** The consumer's `package.json` workspace dependency, and the
   package's `exports` or barrel `index.ts` if the repo routes imports through
   it.
