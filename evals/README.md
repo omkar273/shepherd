@@ -33,6 +33,7 @@ Each run is a new `claude -p` session in a new copy of a fixture.
 |---|---|---|
 | `baseline` | No pack | The plain prompt |
 | `shepherd` | `skills/shepherd` from this checkout, as a plugin | The plain prompt |
+| `shepherd-card` | The `shepherd` plugin and the full setup: the `CLAUDE.md` card and the `lang/` path rules | The plain prompt |
 | `karpathy` | [forrestchang/andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills) `2c60614`, as a plugin | The plain prompt |
 | `superpowers` | [obra/superpowers](https://github.com/obra/superpowers) `bb92a77` (7.0.0), as a plugin with its SessionStart hook | The plain prompt |
 | `anthropic` | The [code-review plugin](https://github.com/anthropics/claude-code/tree/main/plugins/code-review) `94506ff`, and the bundled `/simplify` | A review starts with `/code-review:code-review`. A write task gets `/simplify` as a second turn. |
@@ -46,7 +47,12 @@ review command expects a GitHub PR, so the prompt adds one sentence: "There is
 no GitHub remote: read the branch with git."
 
 The `shepherd` arm loads the plugin only, as the default install does. The
-`CLAUDE.md` card of the full setup does not load.
+`shepherd-card` arm also loads the full setup. The full setup puts
+`setup/claude-md.md` in `~/.claude/CLAUDE.md` and links `lang/` to
+`~/.claude/rules/shepherd`. User files do not load in a bench run. Thus the
+bench copies them into the fixture as `.claude/CLAUDE.md` and
+`.claude/rules/shepherd`. `.git/info/exclude` keeps the copies out of the
+diff.
 
 Each run uses `--setting-sources project --strict-mcp-config`. Your user
 skills, plugins, hooks, MCP servers, and `~/.claude/CLAUDE.md` do not load.
@@ -68,7 +74,9 @@ The skills that Claude Code bundles, for example `/code-review` and
 
 A trigger prompt runs only for an arm that has a skill the model can load by
 itself. A trigger counts for an arm only if the prompt is in the scope that the
-arm's skills claim. For example, the `pocock` skill claims only reviews.
+arm's skills claim. For example, the `pocock` skill claims only reviews. The
+card of `shepherd-card` covers ordinary changes and reviews, and sends only
+multi-file plans to the skill. Thus that arm claims only the plan prompt.
 
 ### Scoring
 
