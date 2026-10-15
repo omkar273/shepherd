@@ -1,3 +1,9 @@
+---
+paths:
+  - "**/*.go"
+  - "**/go.mod"
+---
+
 # Go
 
 Run `go build ./... && go vet ./...`. Also run the repo's lint target: a

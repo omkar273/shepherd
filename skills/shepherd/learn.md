@@ -1,4 +1,4 @@
-# Learning: consolidate and revert
+# Learning: record, consolidate, and revert
 
 `<shepherd>` is the folder that contains this file. `<clone>` is
 `<shepherd>/../..`. Learning runs only from a full clone. If
@@ -10,6 +10,28 @@
 | `lessons/repos/<slug>.md` | the lessons for one repo, written at runtime | its own local git repo, pushed only to a remote that the user adds |
 | `inbox/signals.jsonl` | each recorded correction, with its evidence | never |
 | `inbox/turns.jsonl` | the prompts and replies from sessions that ran shepherd in the last 30 days | never |
+
+## Record a correction
+
+If the user corrects your work, record the correction before you reply. Run
+this command from inside the repo:
+`python3 <shepherd>/hooks/capture.py signal --kind <kind> --rule "<shepherd rule>" --evidence "<file:line> <one-line paraphrase>"`
+
+- `reject`: the user rejects or edits a finding before you post it. Or the
+  user says that you kept or cut a check, abstraction, or file by mistake.
+- `revert`: the user reverts a cut.
+- `restore`: you put back a removed check because a test failed.
+- `accept`: the user tells you to post a review. The evidence names the
+  findings that you posted and the findings that you dropped.
+
+Do not put secrets or code in the evidence. If a reject, revert, or restore is
+clear and specific to the repo, add `--lesson "<what to do in this repo, and why>"`.
+To count a lesson again, pass its exact text. If the lesson makes the
+never-cut list weaker, add `--flag never-cut` instead. Then tell the user that
+the lesson does not apply.
+
+Show the user all of the script output. If the output has a full lessons
+file, show that file too.
 
 ## Consolidate: "consolidate shepherd lessons"
 
