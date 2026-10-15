@@ -37,12 +37,14 @@ shepherd on its own (with `npx skills` or as a plugin). In that case:
    - Run `settings.py add-hook --event SessionStart --command 'python3 "$HOME/.claude/skills/shepherd/scripts/nudge.py"'`.
      Show the diff that it prints.
    - If the user says yes, run it again with `--write`.
-7. Context hooks (`context.md` says what each hook does). For each row, run
-   `settings.py add-hook` with the arguments in the row, and show the diff. If
-   the user says yes, run it again with `--write`:
+7. Context and write hooks (`context.md` says what each hook does). For each
+   row, run `settings.py add-hook` with the arguments in the row, and show the
+   diff. If the user says yes, run it again with `--write`:
    - `--event UserPromptSubmit --command 'python3 "$HOME/.claude/skills/shepherd/scripts/context_hooks.py" warn'`
    - `--event PostToolUse --matcher Bash --command 'python3 "$HOME/.claude/skills/shepherd/scripts/context_hooks.py" trim'`
    - `--event PreToolUse --matcher Bash --command 'python3 "$HOME/.claude/skills/shepherd/scripts/context_hooks.py" guard'`
+   - `--event PostToolUse --matcher 'Edit|Write|MultiEdit' --command 'python3 "$HOME/.claude/skills/shepherd/scripts/write_hooks.py" lint'`
+   - `--event Stop --command 'python3 "$HOME/.claude/skills/shepherd/scripts/write_hooks.py" stop'`
 8. Auto-compact: run `settings.py merge --json '{"env": {"CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "70"}}'`.
    Show the diff. If the user says yes, run it again with `--write`. If
    `~/.claude/settings.json` still has `autoCompactWindow: 300000` from an
