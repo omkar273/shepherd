@@ -52,32 +52,17 @@ file only when a row below applies.
 | Reviewing a PR or branch | `code/review.md`, `code/defensive.md` |
 | Auditing a repo or a change (bugs, risk, scale, tests, bloat), or listing deferred shortcuts | `code/audit.md` |
 | The user asks for "lite" or "ultra" mode, or for the full write report | `code/write.md` |
-| `.go` files or `go.mod` | + `lang/go.md` |
-| `.ts` files | + `lang/typescript.md` |
-| `.svelte`, `.svelte.ts` | + `lang/typescript.md`, `lang/svelte.md` |
-| `.tsx`, `.jsx`, React imports | + `lang/typescript.md`, `lang/react.md` |
-| Planning a multi-file or unclear change | the superpowers `brainstorming` skill, then `writing-plans`. If the repo uses Matt's issue flow, suggest `/to-spec` to the user. Only the user can start it. |
-| A bug or a failing test | the superpowers `systematic-debugging` skill |
-| About to say a change is done | the superpowers `verification-before-completion` skill |
+| Plan, debug, or say done | the superpowers `brainstorming` then `writing-plans`, `systematic-debugging`, or `verification-before-completion` skill. Without superpowers: plan before a multi-file edit, find the root cause before a fix, and run the checks before you say done. |
 | No skill in the listing fits the task | the descriptions of the name-only skills from the SessionStart hook. If one fits, call it by name. Read only that skill. |
 | "Set up", "update", "add" or "status" for skills | `skills.md` |
-| Installing or removing a pack, or a task that fits a pack: planning, productivity, design, reverse engineering, video, writing, SEO, simulation | `skills.md`, Packs |
-| Adding or removing a catalog skill | `curate.md` |
+| A pack or a catalog skill | the user runs `/catalog` |
 | SEO or AEO work on a site or product | `seo.md` |
 | A long, slow, or messy session | `context.md` |
-| The user corrects your work, or tells you to post a review | `learn.md`, Record a correction. Do this before you reply. |
-| "Consolidate shepherd lessons", "revert shepherd <commit>" | `learn.md` |
+| The user corrects your work or tells you to post a review (do this before you reply), or asks to consolidate or revert lessons | `learn.md` |
 
-If a superpowers skill above is not installed, do its step yourself:
-
-- Before an edit to many files, decide the goal and write a short plan.
-- Before a fix, find the root cause.
-- Before you say done, run the checks and read their output.
-
-Read only the `lang/` files that match the change, before the first line in
-that language. Setup installs them as path rules, so a `lang/` file can
-already be in context. Then do not read it again. If a language has no file,
-use the repo's own docs. Do not make up rules for a language.
+The `lang/` files load as path rules when you open a matching file. Read one
+only if it is not in context. If a language has no file, use the repo's own
+docs. Do not make up rules for a language.
 
 ## The ladder
 
@@ -182,10 +167,9 @@ removal can break something with no error, keep the code.
 
 - Run the repo's linter. Do not restate the rules that it enforces. In a
   review, a broken documented convention is a finding. Quote the doc.
-- Write all prose in ASD-STE100 Simplified Technical English (STE): docs,
-  comments, commit messages, PR bodies, findings, and reports. Use short
-  sentences, the active voice, one word for each meaning, and no contractions
-  or semicolons. Read `ste.md` before you write a doc or a skill file.
+- Write prose in ASD-STE100 Simplified Technical English: short sentences, the
+  active voice, one word for each meaning, and no contractions or semicolons.
+  Read `ste.md` before you write a doc or a skill file.
 - Use Read to view source and Grep to search it, in parallel batches. Do not
   read a file again just after you edit it.
 - Read a web page as text first. Take a screenshot only for a visual check, at

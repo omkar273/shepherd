@@ -4,6 +4,7 @@ import argparse
 import io
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -145,13 +146,33 @@ def prune(home, catalog_path):
     return removed
 
 
+def hint(data, home, catalog_path):
+    """UserPromptSubmit: name each pack not installed whose cues match the prompt, once a session."""
+    from context_hooks import session_dir
+    prompt = data["prompt"].lower()
+    installed = installed_packs(home)
+    logs = session_dir(home, data)
+    lines = []
+    for pack, spec in load(catalog_path)["packs"].items():
+        offered = logs / f"hinted-{pack}"
+        if pack in installed or offered.exists():
+            continue
+        if any(re.search(rf"\b{re.escape(cue.lower())}\b", prompt) for cue in spec.get("cues", [])):
+            offered.touch()
+            skills = ", ".join(s["name"] for s in spec["skills"])
+            lines.append(f"The {pack} pack ({skills}) fits this prompt. Offer `/catalog install {pack}` once.")
+    if not lines:
+        return None
+    return {"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": "\n".join(lines)}}
+
+
 def main():
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--home", default=str(Path.home()))
     common.add_argument("--catalog", default=str(CATALOG))
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="action", required=True)
-    for name in ("list", "check", "prune"):
+    for name in ("list", "check", "prune", "hint"):
         sub.add_parser(name, parents=[common])
     for name in ("install", "uninstall"):
         sub.add_parser(name, parents=[common]).add_argument("pack")
@@ -161,7 +182,14 @@ def main():
     args = parser.parse_args()
     home = Path(args.home).expanduser()
 
-    if args.action == "fetch":
+    if args.action == "hint":
+        try:
+            result = hint(json.load(sys.stdin), home, args.catalog)
+        except Exception:
+            return
+        if result:
+            print(json.dumps(result))
+    elif args.action == "fetch":
         print(fetch(args.repo, args.path, Path(args.dest)))
     elif args.action == "list":
         print(json.dumps(list_packs(load(args.catalog), home), indent=2))

@@ -45,6 +45,7 @@ shepherd on its own (with `npx skills` or as a plugin). In that case:
    - `--event PreToolUse --matcher Bash --command 'python3 "$HOME/.claude/skills/shepherd/scripts/context_hooks.py" guard'`
    - `--event PostToolUse --matcher 'Edit|Write|MultiEdit' --command 'python3 "$HOME/.claude/skills/shepherd/scripts/write_hooks.py" lint'`
    - `--event Stop --command 'python3 "$HOME/.claude/skills/shepherd/scripts/write_hooks.py" stop'`
+   - `--event UserPromptSubmit --command 'python3 "$HOME/.claude/skills/shepherd/scripts/catalog.py" hint'`
 8. Auto-compact: run `settings.py merge --json '{"env": {"CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "70"}}'`.
    Show the diff. If the user says yes, run it again with `--write`. If
    `~/.claude/settings.json` still has `autoCompactWindow: 300000` from an
@@ -147,31 +148,7 @@ Nothing can start a skill that is off.
 3. Tell the user: if the repo does not use X, the next prune sets X to
    `"name-only"` again. To prevent this, add X to `--keep` in that prune.
 
-## Packs: "install the <pack> pack", "remove a pack", "what packs are there"
+## Packs
 
-Packs are experimental. Offer a pack only in a full clone
-(`<shepherd>/../../catalog/catalog.json` exists). If the task fits a pack
-below and `catalog.py list` shows it as not installed, offer it once in each
-session. Say: "The <pack> pack (<skills>) can help here. Install it?" Install
-the pack only if the user says yes.
-
-| Pack | Cues | Skills |
-|---|---|---|
-| planning | spec, tickets, issue tracker, multi-session effort, triage | `/to-spec`, `/to-tickets`, `/implement`, `/wayfinder`, `/triage` and 5 more |
-| productivity | handoff, teach me, questionnaire, retro, grill me | `/grill-me`, `/handoff`, `/teach`, `/to-questionnaire`, `/wait-what`, `/retro` |
-| design | landing page, new UI, redesign, visual style, scroll animation, UI polish, animation, layout | `frontend-design`, `scroll-craft` (generated assets need a kie.ai key), `emil-design-eng`, `better-layout` |
-| reverse-engineering | decompile, shipped binary, APK, Electron app internals, firmware | `reverse-engineer-anything` (needs the REA MCP server or `rea` CLI) |
-| video | make a video, promo or explainer video, captions, motion graphics, render video | `hyperframes` (installs its workflows on first use with `npx hyperframes`) |
-| writing | humanize, sounds like AI, AI-sounding text, rewrite this draft | `humanizer` |
-| seo | SEO, AEO, keyword research, site audit, AI visibility, structured data | `seo-audit`, `keyword-research`, `ai-visibility-audit` and 9 more OpenSEO skills (need the OpenSEO MCP server), `seo-aeo-best-practices`, `seo-aeo-audit` |
-| simulation | simulate public reaction, market sentiment, swarm simulation, MiroFish | `mirofish-offline-simulation` (needs local Neo4j and Ollama) |
-
-- **List:** `catalog.py list` shows each pack, its skills, and whether the
-  pack is installed.
-- **Install:** say which skills the pack adds. Wait for a yes. Then run
-  `catalog.py install <pack>`, and report what it linked and backed up. If a
-  new skill does not appear in the session, say: restart Claude Code to load
-  it.
-- **Remove:** `catalog.py uninstall <pack>` removes only the pack's links.
-- **Clean the cache:** run `catalog.py prune` only when the user asks.
-- **Add or remove a catalog skill:** follow `curate.md`.
+The user runs `/catalog` to list, install, or remove a pack. The setup hook
+`catalog.py hint` names a pack when a prompt matches its cues.
