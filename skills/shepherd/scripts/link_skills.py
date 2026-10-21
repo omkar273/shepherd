@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Link every skill in this repo into ~/.claude/skills and ~/.agents/skills.
-Link shepherd's lang/ folder to ~/.claude/rules/shepherd, so Claude Code loads
-each language file as a path rule when the agent opens a matching file.
+"""Link every skill in skills/ and skills/shepherd/skills into ~/.claude/skills
+and ~/.agents/skills. Link shepherd's lang/ folder to ~/.claude/rules/shepherd,
+so Claude Code loads each language file as a path rule when the agent opens a
+matching file.
 
 A real folder or a foreign link in the way is moved to
 ~/.skills-backup/<date>/<runtime>/<name>, never deleted. Links into this repo
@@ -14,6 +15,7 @@ import os
 from pathlib import Path
 
 SKILLS_DIR = Path(__file__).resolve().parents[2]
+SKILL_ROOTS = (SKILLS_DIR, SKILLS_DIR / "shepherd" / "skills")
 RETIRED_FILE = SKILLS_DIR.parent / "setup" / "retired.txt"
 RUNTIMES = {"claude": Path(".claude/skills"), "agents": Path(".agents/skills")}
 RULES_LINK = Path(".claude/rules/shepherd")
@@ -21,7 +23,7 @@ RULES_SOURCE = SKILLS_DIR / "shepherd" / "lang"
 
 
 def points_into_repo(path):
-    return Path(os.path.realpath(path)).parent == SKILLS_DIR
+    return Path(os.path.realpath(path)).parent in SKILL_ROOTS
 
 
 def backup_path(home, runtime, name):
@@ -34,14 +36,15 @@ def backup_path(home, runtime, name):
 
 
 def plan(home, retire):
-    skills = sorted(p.name for p in SKILLS_DIR.iterdir() if (p / "SKILL.md").exists())
+    sources = {p.name: p for root in SKILL_ROOTS for p in root.iterdir() if (p / "SKILL.md").exists()}
+    skills = sorted(sources)
     retired = set(RETIRED_FILE.read_text().split()) if retire else set()
     report = {k: [] for k in ("linked", "unchanged", "backed_up", "pruned", "retired", "untouched")}
     actions = []
     for runtime, rel in RUNTIMES.items():
         runtime_dir = home / rel
         for name in skills:
-            target, source = runtime_dir / name, SKILLS_DIR / name
+            target, source = runtime_dir / name, sources[name]
             key = f"{runtime}/{name}"
             if target.is_symlink() and points_into_repo(target) and target.exists():
                 report["unchanged"].append(key)

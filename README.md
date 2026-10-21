@@ -318,10 +318,10 @@ Packs are skills that install only when you need them. The catalog has eight:
   Neo4j and Ollama yourself; the skill is unlicensed and added below the
   catalog bar (see its decision record).
 
-When a task fits a pack you don't have, `shepherd` offers it once per session
-and never installs without your yes. You can also say **"what packs are
-there"**, **"install the planning pack"**, or **"remove a pack"**. Packs come
-with the full setup; a shepherd-only install doesn't offer them.
+When a prompt matches a pack's cues, a hook names that pack once per session,
+and nothing installs without your yes. Run **`/catalog`** to list, install, or
+remove packs. The skill costs no context until you call it. Packs come with the
+full setup; a shepherd-only install doesn't offer them.
 
 Packs track each skill's upstream. Every skill in a pack has a decision record
 in [`catalog/decisions/`](catalog/decisions/) that scores it against a rubric

@@ -9,7 +9,8 @@ from pathlib import Path
 
 SCRIPT = Path(__file__).resolve().parent.parent / "link_skills.py"
 SKILLS_DIR = Path(__file__).resolve().parents[3]
-SKILL_COUNT = sum(1 for p in SKILLS_DIR.iterdir() if (p / "SKILL.md").exists())
+SKILL_ROOTS = (SKILLS_DIR, SKILLS_DIR / "shepherd" / "skills")
+SKILL_COUNT = sum(1 for root in SKILL_ROOTS for p in root.iterdir() if (p / "SKILL.md").exists())
 LANG = (SKILLS_DIR / "shepherd" / "lang").resolve()
 
 
@@ -23,7 +24,7 @@ def run(home, *args):
 
 def repo_links(runtime_dir):
     return [p for p in runtime_dir.iterdir()
-            if p.is_symlink() and Path(os.path.realpath(p)).parent == SKILLS_DIR.resolve()]
+            if p.is_symlink() and Path(os.path.realpath(p)).parent in SKILL_ROOTS]
 
 
 def snapshot(root):
